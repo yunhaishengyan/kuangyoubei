@@ -1,0 +1,3700 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1410">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>况友杯 · 赛程管理</title>
+<meta name="description" content="足球联赛报名名单、球队、抽签、瑞士轮、淘汰赛和比分管理，离线可用。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BD%3C/text%3E%3C/svg%3E">
+<style>
+/* ============ 基础 ============ */
+:root {
+  --bg: #070f0c;
+  --bg-2: #0b1611;
+  --card: #111e18;
+  --card-2: #16261f;
+  --line: #22372c;
+  --line-soft: rgba(46, 230, 107, .1);
+  --text: #e9f5ee;
+  --muted: #8aa79a;
+  --muted-2: #63806f;
+  --green: #2ee66b;
+  --green-deep: #12a04a;
+  --gold: #f5c451;
+  --red: #ff6b6b;
+  --blue: #4cc9f0;
+  --radius: 18px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 560px at 8% -12%, rgba(18, 90, 52, .55) 0%, transparent 58%),
+    radial-gradient(900px 480px at 108% 4%, rgba(12, 78, 96, .4) 0%, transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: .2px; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: none; background: none; }
+ol, ul { margin: 0; padding: 0; list-style: none; }
+a { color: var(--green); }
+
+.app {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 14px calc(40px + env(safe-area-inset-bottom));
+}
+
+/* ============ 顶栏 ============ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 2px 10px;
+  background: linear-gradient(180deg, rgba(7, 15, 12, .96) 60%, rgba(7, 15, 12, 0));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.brand { display: flex; align-items: center; gap: 11px; min-width: 0; flex: 1; }
+
+.ball {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 14px;
+  font-size: 22px;
+  background: linear-gradient(145deg, #1d3b2c, #0f241a);
+  border: 1px solid rgba(46, 230, 107, .28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 18px rgba(0, 0, 0, .3);
+}
+
+.brand-text { min-width: 0; }
+.brand-text h1 {
+  font-size: 19px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brand-text p {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  font-size: 18px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--line);
+}
+.icon-btn:active { background: rgba(255, 255, 255, .09); }
+
+/* ============ 阶段进度 ============ */
+.stagebar {
+  display: flex;
+  gap: 5px;
+  padding: 2px 0 10px;
+}
+.stagebar .seg {
+  height: 4px;
+  flex: 1;
+  border-radius: 3px;
+  background: #1b2b23;
+  overflow: hidden;
+  position: relative;
+}
+.stagebar .seg.done { background: linear-gradient(90deg, #1f9c50, var(--green)); }
+.stagebar .seg.current {
+  background: linear-gradient(90deg, #1f9c50, var(--green));
+  box-shadow: 0 0 12px rgba(46, 230, 107, .5);
+}
+
+/* ============ 标签栏 ============ */
+.tabs {
+  position: sticky;
+  top: 66px;
+  z-index: 25;
+  display: flex;
+  gap: 6px;
+  padding: 6px 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: linear-gradient(180deg, rgba(7, 15, 12, .97) 70%, rgba(7, 15, 12, 0));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .045);
+  border: 1px solid transparent;
+  transition: all .18s ease;
+}
+.tab .cnt {
+  font-size: 10.5px;
+  margin-left: 4px;
+  opacity: .65;
+  font-weight: 700;
+}
+.tab.active {
+  color: #04150b;
+  background: linear-gradient(135deg, var(--green), #19c45a);
+  box-shadow: 0 6px 18px rgba(46, 230, 107, .28);
+}
+
+/* ============ 通用 ============ */
+.view { padding-bottom: 10px; animation: fade .22s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.card {
+  background: linear-gradient(180deg, rgba(24, 40, 32, .95), rgba(15, 26, 21, .95));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.section { margin-top: 16px; }
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 2px 9px;
+}
+.section-head h3 { font-size: 15px; }
+.section-head .sub { font-size: 12px; color: var(--muted); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid var(--line);
+  transition: transform .12s ease, filter .18s ease;
+  white-space: nowrap;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .42; pointer-events: none; }
+.btn-primary {
+  color: #04150b;
+  background: linear-gradient(135deg, #35ef75, #13a54b);
+  border-color: transparent;
+  box-shadow: 0 8px 22px rgba(46, 230, 107, .26);
+}
+.btn-danger { color: #ffb4b4; background: rgba(255, 107, 107, .1); border-color: rgba(255, 107, 107, .3); }
+.btn-sm { padding: 7px 11px; font-size: 12.5px; border-radius: 10px; }
+.btn-block { width: 100%; }
+
+.row { display: flex; gap: 9px; align-items: center; }
+.row.wrap { flex-wrap: wrap; }
+.row.gap { margin-top: 10px; }
+.spacer { flex: 1; }
+
+.hint { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+.muted { color: var(--muted); }
+.tiny { font-size: 11.5px; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, .07);
+  color: var(--muted);
+}
+.badge.green { background: rgba(46, 230, 107, .14); color: var(--green); }
+.badge.gold { background: rgba(245, 196, 81, .14); color: var(--gold); }
+.badge.red { background: rgba(255, 107, 107, .13); color: var(--red); }
+
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; display: inline-block; }
+
+/* ============ 总览 ============ */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 20px 18px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(46, 230, 107, .18);
+  background:
+    radial-gradient(420px 180px at 100% 0%, rgba(46, 230, 107, .17), transparent 70%),
+    linear-gradient(160deg, #16281f, #0c1712);
+  box-shadow: var(--shadow);
+  margin-top: 4px;
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  right: -46px;
+  bottom: -60px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  border: 1px solid rgba(46, 230, 107, .14);
+  pointer-events: none;
+}
+.hero .eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  color: var(--green);
+  font-weight: 800;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+.hero h2 { font-size: 21px; line-height: 1.35; margin-bottom: 6px; }
+.hero p { color: var(--muted); font-size: 13px; max-width: 34em; }
+.hero .btn { margin-top: 15px; }
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  margin-top: 14px;
+}
+.metric {
+  padding: 12px 6px 10px;
+  border-radius: 15px;
+  text-align: center;
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid var(--line-soft);
+}
+.metric b { display: block; font-size: 19px; line-height: 1.2; letter-spacing: -.4px; }
+.metric span { display: block; font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+
+.quick-list { display: grid; gap: 7px; }
+.quick-match {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 13px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid var(--line-soft);
+  font-size: 13px;
+}
+.quick-match .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quick-match .t.r { text-align: right; }
+.quick-match .s {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--green);
+  min-width: 54px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.quick-match .s.pending { color: var(--muted-2); font-weight: 600; font-size: 11px; }
+
+/* ============ 通用空状态 ============ */
+.empty {
+  text-align: center;
+  padding: 34px 20px;
+  border-radius: var(--radius);
+  border: 1px dashed #2a4236;
+  background: rgba(255, 255, 255, .02);
+  margin-top: 8px;
+}
+.empty .em {
+  font-size: 34px;
+  display: block;
+  margin-bottom: 10px;
+  filter: grayscale(.15);
+}
+.empty h3 { font-size: 16px; margin-bottom: 6px; }
+.empty p { color: var(--muted); font-size: 13px; max-width: 30em; margin: 0 auto 14px; }
+.empty .row { justify-content: center; flex-wrap: wrap; }
+
+/* ============ 名单 ============ */
+.search {
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px 14px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--line);
+  outline: none;
+  font-size: 14px;
+}
+.search:focus { border-color: rgba(46, 230, 107, .45); }
+
+.team-group { margin-top: 14px; }
+.team-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 3px 7px;
+}
+.team-group-head b { font-size: 14px; }
+.team-group-head .n { font-size: 11.5px; color: var(--muted); }
+
+.roster-card {
+  border-radius: 15px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  overflow: hidden;
+}
+.prow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 13px;
+  text-align: left;
+  border-bottom: 1px solid rgba(34, 55, 44, .55);
+}
+.prow:last-child { border-bottom: none; }
+.prow:active { background: rgba(255, 255, 255, .04); }
+.pno {
+  width: 29px;
+  height: 29px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .05);
+  font-variant-numeric: tabular-nums;
+}
+.pname { flex: 1; min-width: 0; font-size: 14px; }
+.pname em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 7px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .05);
+}
+.pmeta { font-size: 11.5px; color: var(--muted-2); }
+.prow .chev { color: var(--muted-2); font-size: 16px; }
+.prow.hidden { display: none; }
+
+/* ============ 球队 ============ */
+.team-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-top: 10px; }
+@media (max-width: 360px) { .team-grid { grid-template-columns: 1fr; } }
+
+.team-card {
+  position: relative;
+  padding: 13px 13px 11px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(24, 40, 32, .95), rgba(14, 24, 19, .95));
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.team-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--tc, var(--green));
+}
+.team-card .tc-head { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.team-card .tc-name {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-card .tc-sub { font-size: 11.5px; color: var(--muted); margin: 5px 0 8px; }
+.team-card .tc-players {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  margin-bottom: 9px;
+}
+.avatar {
+  width: 25px;
+  height: 25px;
+  border-radius: 9px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #06150d;
+  background: var(--tc, #2ee66b);
+  opacity: .9;
+}
+.team-card .tc-actions { display: flex; gap: 6px; }
+.team-card .tc-actions .btn { flex: 1; padding: 6px 4px; font-size: 11.5px; }
+
+/* ============ 抽签 ============ */
+.draw-stage {
+  padding: 22px 16px;
+  border-radius: 20px;
+  text-align: center;
+  border: 1px solid rgba(46, 230, 107, .16);
+  background:
+    radial-gradient(300px 160px at 50% 0%, rgba(46, 230, 107, .16), transparent 70%),
+    linear-gradient(180deg, #14241c, #0c1712);
+  margin-top: 6px;
+}
+.draw-stage .big-ball {
+  font-size: 44px;
+  display: block;
+  margin-bottom: 10px;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.draw-stage h2 { font-size: 18px; }
+.draw-stage p { color: var(--muted); font-size: 12.5px; margin-top: 5px; }
+.draw-stage .btn { margin-top: 16px; }
+
+.slots { display: grid; gap: 6px; margin-top: 12px; }
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+.slot .no {
+  width: 24px;
+  flex: none;
+  text-align: center;
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--muted-2);
+  font-variant-numeric: tabular-nums;
+}
+.slot .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot .vs-mark { font-size: 11px; color: var(--muted-2); }
+
+/* 抽签动画 */
+.draw-anim { padding: 26px 16px; text-align: center; }
+.draw-anim .rolling {
+  font-size: 24px;
+  font-weight: 800;
+  min-height: 42px;
+  letter-spacing: 1px;
+  color: var(--green);
+  text-shadow: 0 0 24px rgba(46, 230, 107, .4);
+}
+.draw-anim p { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+
+/* ============ 比赛卡片 ============ */
+.round-chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+.round-chips::-webkit-scrollbar { display: none; }
+.round-chip {
+  flex: none;
+  padding: 7px 13px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .045);
+  border: 1px solid transparent;
+}
+.round-chip.active { color: var(--green); background: rgba(46, 230, 107, .1); border-color: rgba(46, 230, 107, .3); }
+.round-chip .ok { color: var(--green); margin-left: 3px; }
+
+.matches { display: grid; gap: 8px; }
+.match {
+  padding: 11px 13px 10px;
+  border-radius: 15px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.match.played { border-color: rgba(46, 230, 107, .22); }
+.match-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--muted-2);
+  margin-bottom: 6px;
+  letter-spacing: .3px;
+}
+.match.bye { opacity: .72; }
+.match .side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+}
+.match .side .nm {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.match.played .side.win .nm { color: var(--green); }
+.match .side.lose .nm { color: var(--muted); }
+.score {
+  width: 46px;
+  height: 38px;
+  flex: none;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: #0a1510;
+  border: 1px solid #2a4236;
+  border-radius: 10px;
+  outline: none;
+  padding: 0;
+}
+.score:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(46, 230, 107, .14); }
+.score::-webkit-outer-spin-button,
+.score::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.score[type=number] { -moz-appearance: textfield; appearance: textfield; }
+.score-static {
+  width: 46px;
+  flex: none;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.score-static.win { color: var(--green); }
+
+.match-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px dashed rgba(34, 55, 44, .8);
+}
+.match-foot .hint { flex: 1; font-size: 11px; }
+.match-foot .btn { padding: 7px 14px; font-size: 12.5px; }
+
+/* ============ 积分榜 ============ */
+.table-wrap { overflow-x: auto; border-radius: 15px; border: 1px solid var(--line); background: var(--card); }
+table.standings { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 440px; }
+table.standings th {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--muted-2);
+  text-align: center;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--line);
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+table.standings th:nth-child(2) { text-align: left; padding-left: 10px; }
+table.standings td {
+  padding: 9px 4px;
+  text-align: center;
+  border-bottom: 1px solid rgba(34, 55, 44, .45);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+table.standings td:nth-child(2) { text-align: left; padding-left: 10px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+table.standings tr:last-child td { border-bottom: none; }
+table.standings tr.cut td { border-bottom: 2px dashed rgba(46, 230, 107, .35); }
+table.standings tr.me td { background: rgba(46, 230, 107, .05); }
+.rank-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .05);
+}
+.rank-badge.top1 { color: #1a1403; background: var(--gold); }
+.rank-badge.top2 { color: #10161a; background: #cfd8dc; }
+.rank-badge.top3 { color: #1d1208; background: #d08a52; }
+.team-cell { display: flex; align-items: center; gap: 7px; }
+.team-cell span { overflow: hidden; text-overflow: ellipsis; }
+.pts { color: var(--text); font-weight: 800; }
+
+/* ============ 淘汰赛 ============ */
+.bracket {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.bracket::-webkit-scrollbar { display: none; }
+.bracket-col { flex: none; width: 196px; display: flex; flex-direction: column; }
+.bracket-col h4 {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-bottom: 9px;
+  padding-left: 2px;
+}
+.bracket-col .col-body { display: flex; flex-direction: column; justify-content: space-around; flex: 1; gap: 10px; }
+.ko-match {
+  border-radius: 13px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.ko-match.live { border-color: rgba(46, 230, 107, .3); }
+.ko-match.done { border-color: rgba(46, 230, 107, .18); }
+.ko-match.pending { opacity: .82; }
+.ko-side {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 0;
+  font-size: 12.5px;
+}
+.ko-side .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ko-side .sc { font-weight: 800; font-variant-numeric: tabular-nums; }
+.ko-side.win .nm { color: var(--green); }
+.ko-side.tbd .nm { color: var(--muted-2); font-style: italic; }
+.ko-foot { font-size: 10px; color: var(--muted-2); margin-top: 4px; }
+
+.champion {
+  position: relative;
+  text-align: center;
+  padding: 26px 16px 22px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 196, 81, .3);
+  background:
+    radial-gradient(300px 160px at 50% -10%, rgba(245, 196, 81, .22), transparent 70%),
+    linear-gradient(180deg, #211c0e, #0f130d);
+  margin-top: 6px;
+}
+.champion .cup { font-size: 42px; display: block; margin-bottom: 6px; }
+.champion .label { font-size: 11px; letter-spacing: 3px; color: var(--gold); font-weight: 800; }
+.champion h2 { font-size: 24px; margin: 4px 0 2px; }
+.champion p { font-size: 12px; color: var(--muted); }
+
+.ko-empty {
+  padding: 20px 16px;
+  border-radius: var(--radius);
+  border: 1px dashed #2a4236;
+  background: rgba(255, 255, 255, .02);
+}
+.seed-pairs { display: grid; gap: 6px; margin: 12px 0; }
+.seed-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .035);
+}
+.seed-pair .vs { color: var(--muted-2); font-size: 10.5px; }
+
+/* ============ 大屏比分板 ============ */
+.board {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+  background: radial-gradient(900px 500px at 50% -10%, #0f3323, #050b08 70%);
+  overflow-y: auto;
+  animation: fade .2s ease;
+}
+.board-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.board-head h2 { font-size: 17px; }
+.board-head .sub { font-size: 12px; color: var(--muted); }
+.board-list { display: grid; gap: 14px; flex: 1; align-content: start; }
+.board-match {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(46, 230, 107, .14);
+}
+.board-match .bt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 3px 0; }
+.board-match .bt .nm { font-size: 17px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-match .bt .sc { font-size: 26px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+.board-match .bt.win .nm { color: var(--green); }
+.board-match .bt .sc.pending { color: var(--muted-2); font-size: 13px; font-weight: 600; }
+.board-foot { margin-top: auto; text-align: center; font-size: 11px; color: var(--muted-2); padding-top: 16px; }
+
+/* ============ 数据页 ============ */
+.list-card { border-radius: 15px; border: 1px solid var(--line); background: var(--card); overflow: hidden; }
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  text-align: left;
+  border-bottom: 1px solid rgba(34, 55, 44, .5);
+}
+.list-row:last-child { border-bottom: none; }
+.list-row:active { background: rgba(255, 255, 255, .04); }
+.list-row .ic {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: rgba(46, 230, 107, .09);
+  font-size: 15px;
+}
+.list-row .tx { flex: 1; min-width: 0; }
+.list-row .tx b { display: block; font-size: 13.5px; font-weight: 600; }
+.list-row .tx span { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
+.list-row .chev { color: var(--muted-2); }
+.danger-zone .ic { background: rgba(255, 107, 107, .1); }
+
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; text-align: right; }
+
+/* ============ 弹窗 ============ */
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, .62);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fade .18s ease;
+}
+.modal-card {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0;
+  background: linear-gradient(180deg, #16261f, #0d1813);
+  border: 1px solid var(--line);
+  border-bottom: none;
+  animation: slideup .24s cubic-bezier(.2, .8, .3, 1);
+}
+@media (min-width: 620px) {
+  .modal-mask { align-items: center; }
+  .modal-card { border-radius: 22px; border-bottom: 1px solid var(--line); max-height: 84vh; }
+}
+@keyframes slideup { from { transform: translateY(18px); opacity: .6; } to { transform: none; opacity: 1; } }
+
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.modal-head h2 { font-size: 17px; }
+.modal-card .hint { margin-bottom: 10px; }
+
+.field { margin-top: 11px; }
+.field label { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 5px; font-weight: 600; letter-spacing: .3px; }
+.field input, .field select, .field textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: #0a1510;
+  border: 1px solid #2a4236;
+  outline: none;
+  font-size: 14px;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: rgba(46, 230, 107, .5); }
+.field textarea { resize: vertical; line-height: 1.6; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+
+.paste {
+  width: 100%;
+  min-height: 132px;
+  padding: 12px;
+  border-radius: 13px;
+  background: #0a1510;
+  border: 1px solid #2a4236;
+  outline: none;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.paste:focus { border-color: rgba(46, 230, 107, .5); }
+
+.preview-wrap { margin-top: 12px; border-radius: 13px; border: 1px solid var(--line); overflow: auto; }
+table.preview { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+table.preview th, table.preview td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(34, 55, 44, .6);
+  text-align: left;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+table.preview th { background: rgba(255, 255, 255, .04); font-size: 10.5px; color: var(--muted); }
+
+.map-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.map-grid .field { margin-top: 0; }
+.map-grid .field label { font-size: 10.5px; }
+
+.radio-row { display: flex; gap: 8px; margin-top: 8px; }
+.radio-chip {
+  flex: 1;
+  text-align: center;
+  padding: 9px;
+  border-radius: 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03);
+  cursor: pointer;
+}
+.radio-chip input { display: none; }
+.radio-chip.on { color: var(--green); border-color: rgba(46, 230, 107, .4); background: rgba(46, 230, 107, .09); }
+
+.vs-box { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+.vs-team {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 6px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .04);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vs-colon { color: var(--muted-2); font-weight: 800; }
+.vs-box .score { width: 52px; height: 44px; font-size: 20px; }
+.pens-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.pens-row input { width: 48px; height: 36px; text-align: center; font-size: 15px; font-weight: 700; background: #0a1510; border: 1px solid #2a4236; border-radius: 9px; outline: none; }
+.pens-row label { font-size: 11.5px; color: var(--muted); flex: 1; }
+
+/* ============ 提示 ============ */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(26px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 14px);
+  z-index: 200;
+  max-width: 88vw;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #06150d;
+  background: var(--green);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+  opacity: 0;
+  pointer-events: none;
+  transition: all .22s ease;
+  text-align: center;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.err { background: #ff8b8b; color: #260707; }
+
+.foot {
+  margin-top: 26px;
+  text-align: center;
+  font-size: 10.5px;
+  color: #4c6457;
+}
+
+/* 桌面端微调 */
+@media (min-width: 720px) {
+  .app { padding-left: 22px; padding-right: 22px; }
+  .brand-text h1 { font-size: 21px; }
+  .hero h2 { font-size: 24px; }
+  .metrics { grid-template-columns: repeat(4, 1fr); }
+}
+
+.warn-banner {
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #f5c451;
+  background: rgba(245, 196, 81, .1);
+  border: 1px solid rgba(245, 196, 81, .3);
+}
+
+/* 队伍列表 */
+.team-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 13px;
+  text-align: left;
+  border-bottom: 1px solid rgba(34, 55, 44, .55);
+}
+.team-row:last-child { border-bottom: none; }
+.team-row:active { background: rgba(255, 255, 255, .04); }
+.team-row .seed {
+  width: 24px;
+  flex: none;
+  font-size: 11px;
+  color: var(--muted-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.team-row .nm {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-row .pts-badge {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--green);
+  background: rgba(46, 230, 107, .1);
+  padding: 2px 7px;
+  border-radius: 7px;
+}
+.team-row.hidden { display: none; }
+
+/* 分享图预览 */
+.share-preview {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #0a1510;
+  max-height: 58vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.share-preview img { display: block; width: 100%; height: auto; }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="ball">⚽</span>
+      <div class="brand-text">
+        <h1 id="leagueName">况友杯</h1>
+        <p id="leagueSub">报名 · 抽签 · 瑞士轮 · 淘汰赛</p>
+      </div>
+    </div>
+    <button class="icon-btn" data-act="settings" aria-label="赛制设置">⚙</button>
+  </header>
+  <div id="stagebar" class="stagebar"></div>
+  <nav id="tabs" class="tabs"></nav>
+  <main id="view" class="view"></main>
+  <footer class="foot">本地离线运行 · 数据只保存在这台设备</footer>
+</div>
+<div id="modal"></div>
+<div id="toast" class="toast"></div>
+<script>
+/* 足球联赛赛制引擎：报名导入、球队、抽签、瑞士轮、淘汰赛、积分榜 */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.Engine = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  var VERSION = 1;
+  var COLORS = ['#22c55e', '#38bdf8', '#f59e0b', '#ef4444', '#a855f7', '#14b8a6',
+    '#f472b6', '#eab308', '#6366f1', '#84cc16', '#f97316', '#06b6d4'];
+
+  function uid(prefix) {
+    return (prefix || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+  function nowISO() { return new Date().toISOString(); }
+  function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
+  function int(v) { var n = parseInt(v, 10); return isFinite(n) ? n : 0; }
+  function norm(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+  function keyOf(a, b) { return a < b ? a + '|' + b : b + '|' + a; }
+
+  /* ---------------- 状态 ---------------- */
+
+  function createState(opts) {
+    opts = opts || {};
+    return {
+      v: VERSION,
+      meta: {
+        name: opts.name || '况友杯',
+        season: opts.season || '',
+        swissRounds: opts.swissRounds || 4,
+        advance: opts.advance || 8,
+        pointsWin: 3,
+        pointsDraw: 1,
+        pointsLoss: 0,
+        createdAt: nowISO()
+      },
+      teams: [],
+      players: [],
+      draw: { done: false, order: [], at: null },
+      swiss: { rounds: [], current: 0 },
+      ko: { built: false, rounds: [], champion: null, createdAt: null }
+    };
+  }
+
+  function sanitizeState(raw) {
+    if (!raw || typeof raw !== 'object') throw new Error('不是有效的比赛数据');
+    var s = createState();
+    var m = raw.meta || {};
+    s.meta.name = norm(m.name) || s.meta.name;
+    s.meta.season = norm(m.season);
+    s.meta.swissRounds = Math.min(12, Math.max(1, int(m.swissRounds) || 4));
+    s.meta.advance = [2, 4, 8, 16, 32].indexOf(int(m.advance)) >= 0 ? int(m.advance) : 8;
+    s.meta.pointsWin = Math.max(0, num(m.pointsWin) || 3);
+    s.meta.pointsDraw = Math.max(0, num(m.pointsDraw) || 1);
+    if (Array.isArray(raw.teams)) {
+      var seen = {};
+      raw.teams.forEach(function (t) {
+        if (!t || !norm(t.name) || seen[norm(t.name)]) return;
+        seen[norm(t.name)] = 1;
+        s.teams.push({
+          id: String(t.id || uid('t')),
+          name: norm(t.name),
+          short: norm(t.short) || shortName(t.name),
+          color: /^#[0-9a-fA-F]{3,8}$/.test(t.color || '') ? t.color : COLORS[s.teams.length % COLORS.length],
+          seed: int(t.seed) || s.teams.length + 1
+        });
+      });
+    }
+    var tmap = {};
+    s.teams.forEach(function (t) { tmap[t.id] = t; });
+    if (Array.isArray(raw.players)) {
+      raw.players.forEach(function (p) {
+        if (!p || !norm(p.name) || !tmap[p.teamId]) return;
+        s.players.push({
+          id: String(p.id || uid('p')),
+          teamId: p.teamId,
+          name: norm(p.name),
+          no: p.no == null || p.no === '' ? '' : String(p.no).slice(0, 4),
+          pos: norm(p.pos).slice(0, 12),
+          phone: norm(p.phone).slice(0, 30)
+        });
+      });
+    }
+    if (raw.draw && raw.draw.done) {
+      var order = (raw.draw.order || []).filter(function (id) { return tmap[id]; });
+      s.teams.forEach(function (t) { if (order.indexOf(t.id) < 0) order.push(t.id); });
+      s.draw = { done: true, order: order, at: raw.draw.at || nowISO() };
+    }
+    if (raw.swiss && Array.isArray(raw.swiss.rounds)) {
+      raw.swiss.rounds.forEach(function (r, ri) {
+        if (!r || !Array.isArray(r.matches) || !r.matches.length) return;
+        var round = { no: ri + 1, matches: [] };
+        r.matches.forEach(function (m) {
+          if (!m || !tmap[m.homeId]) return;
+          if (m.bye) {
+            round.matches.push({ id: String(m.id || uid('m')), homeId: m.homeId, awayId: null, homeScore: null, awayScore: null, played: true, bye: true });
+          } else if (tmap[m.awayId]) {
+            round.matches.push({
+              id: String(m.id || uid('m')), homeId: m.homeId, awayId: m.awayId,
+              homeScore: m.homeScore == null ? null : int(m.homeScore),
+              awayScore: m.awayScore == null ? null : int(m.awayScore),
+              played: !!m.played, bye: false
+            });
+          }
+        });
+        s.swiss.rounds.push(round);
+      });
+      s.swiss.current = s.swiss.rounds.length;
+    }
+    if (raw.ko && raw.ko.built && Array.isArray(raw.ko.rounds)) {
+      var tmap2 = tmap;
+      s.ko.built = true;
+      s.ko.mode = ['seed', 'tier', 'random'].indexOf(raw.ko.mode) >= 0 ? raw.ko.mode : 'seed';
+      s.ko.order = (raw.ko.order || []).filter(function (id) { return tmap2[id]; });
+      s.ko.rounds = raw.ko.rounds.map(function (r) {
+        return {
+          name: norm(r.name || ''),
+          size: int(r.size) || 0,
+          matches: (r.matches || []).map(function (m) {
+            var a = m && tmap2[m.aId] ? m.aId : null;
+            var b = m && tmap2[m.bId] ? m.bId : null;
+            return {
+              id: String((m && m.id) || uid('k')),
+              aId: a, bId: b,
+              aScore: m && m.aScore != null ? int(m.aScore) : null,
+              bScore: m && m.bScore != null ? int(m.bScore) : null,
+              aPens: m && m.aPens != null ? int(m.aPens) : null,
+              bPens: m && m.bPens != null ? int(m.bPens) : null,
+              played: !!(m && m.played && a && b),
+              winnerId: m && (m.winnerId === a || m.winnerId === b) ? m.winnerId : null
+            };
+          })
+        };
+      }).filter(function (r) { return r.matches.length > 0; });
+      propagateKo(s);
+    }
+    return s;
+  }
+
+  function shortName(name) {
+    var n = norm(name);
+    if (!n) return '';
+    if (n.length <= 4) return n;
+    return n.slice(0, 4);
+  }
+
+  /* ---------------- 报名表解析 ---------------- */
+
+  var HEADER_PAT = /(队伍|队名|球队|所在队|代表队|team|club|姓名|名字|球员|队员|参赛者|name|player|号码|球衣|背号|编号|jersey|number|位置|场上位置|position|role|电话|手机|联系方式|联系电话|微信号|phone|mobile|tel|邮箱|email|备注|note)/i;
+
+  function detectDelimiter(line) {
+    if (line.indexOf('\t') >= 0) return '\t';
+    var c = (line.match(/,/g) || []).length, sc = (line.match(/;/g) || []).length;
+    if (sc > c) return ';';
+    if (c > 0) return ',';
+    return '\t';
+  }
+
+  function splitLine(line, delim) {
+    var out = [], cur = '', q = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (q) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; } else q = false;
+        } else cur += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === delim) { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out.map(function (x) { return norm(x); });
+  }
+
+  function parseTable(text) {
+    text = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    var lines = text.split('\n').filter(function (l) { return l.trim() !== ''; });
+    if (!lines.length) return { headers: [], rows: [], hasHeader: false, width: 0 };
+    var delim = detectDelimiter(lines[0]);
+    var matrix = lines.map(function (l) { return splitLine(l, delim); });
+    var width = matrix.reduce(function (w, r) { return Math.max(w, r.length); }, 0);
+    matrix.forEach(function (r) { while (r.length < width) r.push(''); });
+    var first = matrix[0];
+    var hasHeader = HEADER_PAT.test(first.join(' '));
+    var headers = hasHeader ? first.slice() : first.map(function (_, i) { return '第 ' + (i + 1) + ' 列'; });
+    var rows = hasHeader ? matrix.slice(1) : matrix;
+    return { headers: headers, rows: rows, hasHeader: hasHeader, width: width };
+  }
+
+  function detectMapping(headers) {
+    var map = { team: -1, name: -1, no: -1, pos: -1, phone: -1 };
+    var rules = [
+      ['team', /(队伍|队名|球队|所在队|代表队|team|club)/i],
+      ['name', /(姓名|名字|球员|队员|参赛者|name|player)/i],
+      ['no', /(号码|球衣|背号|编号|jersey|number|no\.)/i],
+      ['pos', /(位置|场上|position|role|司职)/i],
+      ['phone', /(电话|手机|联系方式|联系电话|微信|phone|mobile|tel)/i]
+    ];
+    rules.forEach(function (rule) {
+      for (var i = 0; i < headers.length; i++) {
+        if (map[rule[0]] >= 0) break;
+        if (rule[1].test(String(headers[i]))) map[rule[0]] = i;
+      }
+    });
+    if (map.name < 0 && map.team < 0) {
+      map.team = headers.length > 1 ? 0 : -1;
+      map.name = headers.length > 1 ? 1 : 0;
+    } else if (map.name < 0) {
+      for (var j = 0; j < headers.length; j++) if (j !== map.team) { map.name = j; break; }
+    }
+    return map;
+  }
+
+  function importRows(state, table, mapping, opts) {
+    opts = opts || {};
+    if (!table || !table.rows) return { added: 0, skipped: 0, teams: 0 };
+    var mode = opts.mode === 'replace' ? 'replace' : 'merge';
+    if (mode === 'replace') resetCompetition(state, { keepDraw: false });
+    if (!state.draw.done && state.swiss.rounds.length === 0) { /* nothing */ }
+    var teamByName = {};
+    state.teams.forEach(function (t) { teamByName[norm(t.name).toLowerCase()] = t; });
+    var existing = {};
+    state.players.forEach(function (p) { existing[p.teamId + '|' + norm(p.name)] = 1; });
+    var added = 0, skipped = 0, newTeams = 0, carry = '';
+    table.rows.forEach(function (row) {
+      var cell = function (i) { return i >= 0 && i < row.length ? norm(row[i]) : ''; };
+      var name = cell(mapping.name);
+      if (!name || /^(姓名|名字|球员)$/.test(name)) return;
+      var teamName = mapping.team >= 0 ? cell(mapping.team) : '';
+      if (teamName) carry = teamName; else teamName = carry || '未分队';
+      var k = teamName.toLowerCase();
+      var team = teamByName[k];
+      if (!team) {
+        team = addTeam(state, teamName, { silent: true });
+        teamByName[k] = team;
+        newTeams++;
+      }
+      var pk = team.id + '|' + name;
+      if (existing[pk]) { skipped++; return; }
+      existing[pk] = 1;
+      state.players.push({
+        id: uid('p'), teamId: team.id, name: name,
+        no: cell(mapping.no), pos: cell(mapping.pos), phone: cell(mapping.phone)
+      });
+      added++;
+    });
+    return { added: added, skipped: skipped, teams: newTeams };
+  }
+
+  function addTeam(state, name, opts) {
+    opts = opts || {};
+    var n = norm(name);
+    if (!n) return null;
+    var dup = state.teams.filter(function (t) { return norm(t.name).toLowerCase() === n.toLowerCase(); })[0];
+    if (dup) return dup;
+    var t = {
+      id: uid('t'), name: n, short: shortName(n),
+      color: COLORS[state.teams.length % COLORS.length],
+      seed: state.teams.length + 1
+    };
+    state.teams.push(t);
+    if (!opts.silent) touchRoster(state);
+    return t;
+  }
+
+  function addPlayer(state, data) {
+    var name = norm(data.name);
+    if (!name) return { ok: false, error: '请填写球员姓名' };
+    var team = null;
+    if (data.teamId) team = state.teams.filter(function (t) { return t.id === data.teamId; })[0];
+    if (!team) team = addTeam(state, data.teamName || '未分队');
+    if (!team) return { ok: false, error: '请填写队伍名称' };
+    if (state.players.some(function (p) { return p.teamId === team.id && norm(p.name) === name; })) {
+      return { ok: false, error: '该队已有同名球员' };
+    }
+    var p = { id: uid('p'), teamId: team.id, name: name, no: norm(data.no), pos: norm(data.pos), phone: norm(data.phone) };
+    state.players.push(p);
+    touchRoster(state);
+    return { ok: true, player: p, team: team };
+  }
+
+  function updatePlayer(state, id, data) {
+    var p = state.players.filter(function (x) { return x.id === id; })[0];
+    if (!p) return { ok: false, error: '球员不存在' };
+    if (data.name != null) p.name = norm(data.name) || p.name;
+    if (data.no != null) p.no = norm(data.no);
+    if (data.pos != null) p.pos = norm(data.pos);
+    if (data.phone != null) p.phone = norm(data.phone);
+    if (data.teamId) {
+      var tt = state.teams.filter(function (x) { return x.id === data.teamId; })[0];
+      if (tt) p.teamId = tt.id;
+    } else if (data.teamName) {
+      var t = state.teams.filter(function (x) { return norm(x.name).toLowerCase() === norm(data.teamName).toLowerCase(); })[0] || addTeam(state, data.teamName);
+      p.teamId = t.id;
+    }
+    return { ok: true };
+  }
+
+  function removePlayer(state, id) {
+    state.players = state.players.filter(function (p) { return p.id !== id; });
+  }
+
+  function updateTeam(state, id, data) {
+    var t = state.teams.filter(function (x) { return x.id === id; })[0];
+    if (!t) return { ok: false, error: '队伍不存在' };
+    if (data.name != null) {
+      var n = norm(data.name);
+      if (!n) return { ok: false, error: '队名不能为空' };
+      if (state.teams.some(function (x) { return x.id !== id && norm(x.name).toLowerCase() === n.toLowerCase(); })) {
+        return { ok: false, error: '队名重复' };
+      }
+      t.name = n;
+      t.short = data.short != null ? norm(data.short) : shortName(n);
+    }
+    if (data.short != null) t.short = norm(data.short);
+    return { ok: true };
+  }
+
+  function removeTeam(state, id) {
+    state.teams = state.teams.filter(function (t) { return t.id !== id; });
+    state.players = state.players.filter(function (p) { return p.teamId !== id; });
+    var changed = state.draw.done || state.swiss.rounds.length || state.ko.built;
+    if (changed) resetCompetition(state);
+    state.teams.forEach(function (t, i) { t.seed = i + 1; });
+  }
+
+  function touchRoster(state) {
+    if (!state.draw.done) return;
+    var ids = state.teams.map(function (t) { return t.id; });
+    state.draw.order = state.draw.order.filter(function (id) { return ids.indexOf(id) >= 0; });
+    ids.forEach(function (id) { if (state.draw.order.indexOf(id) < 0) state.draw.order.push(id); });
+  }
+
+  /* ---------------- 队伍名单解析（纯队伍） ---------------- */
+
+  var TEAM_HEADER = /^(序号|编号|排名|队伍名称|参赛队伍|参赛队|队伍|队名|球队|名称|no\.?|#|index|rank|team|club|name)$/i;
+
+  function parseTeamList(text) {
+    var lines = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n');
+    var names = [], seen = {}, dup = 0;
+    lines.forEach(function (line) {
+      var raw = line.trim();
+      if (!raw) return;
+      if (/^```/.test(raw)) return;
+      if (/^[-*_]{3,}$/.test(raw)) return;
+      var cells;
+      if (raw.indexOf('|') >= 0) {
+        cells = raw.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(norm);
+        if (cells.every(function (c) { return c === '' || /^:?-{2,}:?$/.test(c); })) return;
+      } else if (raw.indexOf('\t') >= 0) {
+        cells = raw.split('\t').map(norm);
+      } else if (raw.indexOf(',') >= 0) {
+        cells = raw.split(',').map(norm);
+      } else {
+        cells = [raw];
+      }
+      while (cells.length > 1 && cells[cells.length - 1] === '') cells.pop();
+      var name = '';
+      if (cells.length === 1) {
+        var one = cells[0];
+        if (/^(序号|编号|排名)\s/.test(one)) return;
+        if (TEAM_HEADER.test(one)) return;
+        var m = one.match(/^(?:#|no\.?\s*)?\d{1,3}\s*[.、:：)）]\s*(.+)$/i) ||
+                one.match(/^(?:#|no\.?\s*)?\d{1,3}\s+(.+)$/i);
+        name = m ? m[1] : one;
+      } else {
+        var a = cells[0], b = cells[1];
+        if (TEAM_HEADER.test(a) && TEAM_HEADER.test(b)) return;
+        if (TEAM_HEADER.test(a) && b === '') return;
+        if (/^\d{1,3}$/.test(a)) name = b;
+        else if (/^\d{1,3}$/.test(b)) name = a;
+        else name = a;
+      }
+      name = norm(name).replace(/^["'`]+|["'`]+$/g, '').trim();
+      if (!name || TEAM_HEADER.test(name)) return;
+      if (name.length > 40) name = name.slice(0, 40);
+      var k = name.toLowerCase();
+      if (seen[k]) { dup++; return; }
+      seen[k] = 1;
+      names.push(name);
+    });
+    return { names: names, duplicates: dup };
+  }
+
+  function importTeams(state, names, opts) {
+    opts = opts || {};
+    if (opts.mode === 'replace') {
+      state.teams = [];
+      state.players = [];
+      resetCompetition(state, { keepDraw: false });
+    }
+    var added = 0, skipped = 0;
+    (names || []).forEach(function (n) {
+      var before = state.teams.length;
+      var t = addTeam(state, n);
+      if (t && state.teams.length > before) added++;
+      else skipped++;
+    });
+    return { added: added, skipped: skipped };
+  }
+
+  function teamsCSV(state) {
+    var rows = [['序号', '队伍名称']];
+    state.teams.forEach(function (t, i) { rows.push([i + 1, t.name]); });
+    return toCSV(rows);
+  }
+
+  /* ---------------- 抽签 ---------------- */
+
+  function drawTeams(state, seed) {
+    if (!state.teams.length) return { ok: false, error: '还没有队伍，先导入名单' };
+    if (state.swiss.rounds.length || state.ko.built) return { ok: false, error: '比赛已经开始，需先重置赛程才能重新抽签' };
+    var order = state.teams.map(function (t) { return t.id; });
+    var rng = mulberry32(seed == null ? (Date.now() >>> 0) : seed);
+    for (var i = order.length - 1; i > 0; i--) {
+      var j = Math.floor(rng() * (i + 1));
+      var tmp = order[i]; order[i] = order[j]; order[j] = tmp;
+    }
+    state.draw = { done: true, order: order, at: nowISO() };
+    return { ok: true, order: order };
+  }
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* ---------------- 积分榜 ---------------- */
+
+  function computeStandings(state) {
+    var P = state.meta;
+    var rows = {};
+    state.teams.forEach(function (t, i) {
+      rows[t.id] = {
+        teamId: t.id, name: t.name, short: t.short, color: t.color, seed: t.seed || i + 1,
+        played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, buchholz: 0, byes: 0, opps: []
+      };
+    });
+    (state.swiss.rounds || []).forEach(function (r) {
+      r.matches.forEach(function (m) {
+        if (!m.played) return;
+        var a = rows[m.homeId];
+        if (!a) return;
+        if (m.bye) {
+          a.played++; a.won++; a.byes++; a.points += P.pointsWin;
+          return;
+        }
+        var b = rows[m.awayId];
+        if (!b) return;
+        var hs = int(m.homeScore), as = int(m.awayScore);
+        a.played++; b.played++;
+        a.gf += hs; a.ga += as; b.gf += as; b.ga += hs;
+        a.opps.push(m.awayId); b.opps.push(m.homeId);
+        if (hs > as) { a.won++; b.lost++; a.points += P.pointsWin; }
+        else if (hs < as) { b.won++; a.lost++; b.points += P.pointsWin; }
+        else { a.drawn++; b.drawn++; a.points += P.pointsDraw; b.points += P.pointsDraw; }
+      });
+    });
+    var list = Object.keys(rows).map(function (k) { return rows[k]; });
+    list.forEach(function (r) {
+      r.gd = r.gf - r.ga;
+      var s = 0;
+      r.opps.forEach(function (oid) { if (rows[oid]) s += rows[oid].points; });
+      r.buchholz = s + r.byes; // 轮空按一个 1 分的虚拟对手计入对手分
+    });
+    list.sort(function (a, b) {
+      return (b.points - a.points) || (b.gd - a.gd) || (b.gf - a.gf) ||
+        (b.buchholz - a.buchholz) || (a.seed - b.seed) || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN');
+    });
+    list.forEach(function (r, i) { r.rank = i + 1; });
+    return list;
+  }
+
+  /* ---------------- 瑞士轮 ---------------- */
+
+  function playedPairSet(state) {
+    var s = {};
+    (state.swiss.rounds || []).forEach(function (r) {
+      r.matches.forEach(function (m) {
+        if (m.bye || !m.awayId) return;
+        s[keyOf(m.homeId, m.awayId)] = 1;
+      });
+    });
+    return s;
+  }
+
+  function findPairing(teams, played, allowRematch) {
+    var n = teams.length, used = [], pairs = [];
+    var i;
+    for (i = 0; i < n; i++) used.push(false);
+    function rec() {
+      var a = -1;
+      for (var x = 0; x < n; x++) if (!used[x]) { a = x; break; }
+      if (a < 0) return true;
+      used[a] = true;
+      for (var b = a + 1; b < n; b++) {
+        if (used[b]) continue;
+        if (!allowRematch && played[keyOf(teams[a].id, teams[b].id)]) continue;
+        used[b] = true; pairs.push([a, b]);
+        if (rec()) return true;
+        pairs.pop(); used[b] = false;
+      }
+      used[a] = false;
+      return false;
+    }
+    return rec() ? pairs : null;
+  }
+
+  function lotteryOrder(rows, seed) {
+    var rng = mulberry32(seed == null ? (Date.now() >>> 0) : seed);
+    var groups = [];
+    rows.forEach(function (r) {
+      var g = groups[groups.length - 1];
+      if (!g || g.points !== r.points) {
+        g = { points: r.points, list: [] };
+        groups.push(g);
+      }
+      g.list.push(r);
+    });
+    var out = [];
+    groups.forEach(function (g) { out = out.concat(shuffleInPlace(g.list.slice(), rng)); });
+    return out;
+  }
+
+  function generateSwissRound(state, opts) {
+    opts = opts || {};
+    var n = state.swiss.rounds.length + 1;
+    var max = state.meta.swissRounds || 4;
+    if (n > max) return { ok: false, error: '已经完成全部 ' + max + ' 轮瑞士轮' };
+    if (n > 1) {
+      var prev = state.swiss.rounds[n - 2];
+      if (prev.matches.some(function (m) { return !m.played; })) {
+        return { ok: false, error: '第 ' + (n - 1) + ' 轮还有比赛未录入比分' };
+      }
+    }
+    var tmap = {};
+    state.teams.forEach(function (t) { tmap[t.id] = t; });
+    var order = [];
+    if (n === 1) {
+      if (state.draw.done) {
+        state.draw.order.forEach(function (id) { if (tmap[id]) order.push(tmap[id]); });
+        state.teams.forEach(function (t) { if (order.indexOf(t) < 0) order.push(t); });
+      } else {
+        order = state.teams.slice();
+      }
+    } else {
+      var rows = computeStandings(state);
+      if (opts.lottery) rows = lotteryOrder(rows, opts.seed);
+      order = rows.map(function (r) { return tmap[r.teamId]; }).filter(Boolean);
+    }
+    if (order.length < 2) return { ok: false, error: '至少需要 2 支队伍' };
+
+    var played = playedPairSet(state);
+    var byeTeam = null;
+    if (order.length % 2 === 1) {
+      var hadBye = {};
+      state.swiss.rounds.forEach(function (r) { r.matches.forEach(function (m) { if (m.bye) hadBye[m.homeId] = 1; }); });
+      var cands = order.filter(function (t) { return !hadBye[t.id]; });
+      byeTeam = (cands.length ? cands[cands.length - 1] : order[order.length - 1]);
+      order = order.filter(function (t) { return t.id !== byeTeam.id; });
+    }
+    var pairs = findPairing(order, played, false) || findPairing(order, played, true);
+    if (!pairs) {
+      pairs = [];
+      for (var i = 0; i < order.length; i += 2) pairs.push([i, i + 1]);
+    }
+    var matches = pairs.map(function (p) {
+      return {
+        id: uid('m'), homeId: order[p[0]].id, awayId: order[p[1]].id,
+        homeScore: null, awayScore: null, played: false, bye: false
+      };
+    });
+    if (byeTeam) {
+      matches.push({ id: uid('m'), homeId: byeTeam.id, awayId: null, homeScore: null, awayScore: null, played: true, bye: true });
+    }
+    var round = { no: n, matches: matches };
+    state.swiss.rounds.push(round);
+    state.swiss.current = n;
+    return { ok: true, round: round, bye: byeTeam ? byeTeam.id : null };
+  }
+
+  function findSwissMatch(state, id) {
+    for (var i = 0; i < state.swiss.rounds.length; i++) {
+      var ms = state.swiss.rounds[i].matches;
+      for (var j = 0; j < ms.length; j++) if (ms[j].id === id) return ms[j];
+    }
+    return null;
+  }
+
+  function setSwissScore(state, id, hs, as) {
+    var m = findSwissMatch(state, id);
+    if (!m) return { ok: false, error: '比赛不存在' };
+    if (m.bye) return { ok: false, error: '轮空场次无需比分' };
+    hs = int(hs); as = int(as);
+    if (hs < 0 || as < 0 || hs > 99 || as > 99) return { ok: false, error: '比分需在 0–99 之间' };
+    m.homeScore = hs; m.awayScore = as; m.played = true;
+    return { ok: true };
+  }
+
+  function clearSwissScore(state, id) {
+    var m = findSwissMatch(state, id);
+    if (!m || m.bye) return;
+    m.homeScore = null; m.awayScore = null; m.played = false;
+  }
+
+  /* ---------------- 淘汰赛 ---------------- */
+
+  function effectiveAdvance(state) {
+    var n = state.teams.length;
+    var want = state.meta.advance || 8;
+    var cap = 0;
+    [32, 16, 8, 4, 2].forEach(function (x) { if (x <= n) cap = Math.max(cap, x); });
+    if (!cap) return 0;
+    return Math.min(want, cap);
+  }
+
+  function bracketOrder(n) {
+    var order = [1, 2];
+    while (order.length < n) {
+      var m = order.length * 2 + 1;
+      var next = [];
+      order.forEach(function (s) { next.push(s); next.push(m - s); });
+      order = next;
+    }
+    return order;
+  }
+
+  function koRoundName(size) {
+    if (size === 2) return '决赛';
+    if (size === 4) return '半决赛';
+    if (size === 8) return '1/4 决赛';
+    if (size === 16) return '1/8 决赛';
+    if (size === 32) return '1/16 决赛';
+    return size + ' 强';
+  }
+
+  function shuffleInPlace(arr, rng) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(rng() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function koSeeds(state) {
+    var n = effectiveAdvance(state);
+    return computeStandings(state).slice(0, n);
+  }
+
+  /**
+   * 淘汰赛抽签
+   * mode: seed  按积分固定（1v8、4v5、2v7、3v6）
+   *       tier  分档抽签：前一半种子 vs 后一半，随机配对
+   *       random 完全随机落位
+   */
+  function drawKnockout(state, mode, seed) {
+    var seeded = koSeeds(state);
+    var n = seeded.length;
+    if (n < 2) return { ok: false, error: '晋级队伍不足' };
+    mode = mode || 'seed';
+    if (['seed', 'tier', 'random'].indexOf(mode) < 0) mode = 'seed';
+    var rng = mulberry32(seed == null ? (Date.now() >>> 0) : seed);
+    var ids = seeded.map(function (r) { return r.teamId; });
+    var order;
+    if (mode === 'tier') {
+      var half = n / 2;
+      var top = shuffleInPlace(ids.slice(0, half), rng);
+      var bottom = shuffleInPlace(ids.slice(half), rng);
+      order = [];
+      for (var i = 0; i < half; i++) order.push(top[i], bottom[i]);
+    } else if (mode === 'random') {
+      order = shuffleInPlace(ids.slice(), rng);
+    } else {
+      order = bracketOrder(n).map(function (x) { return ids[x - 1]; });
+    }
+    return { ok: true, order: order, mode: mode };
+  }
+
+  function buildKnockout(state, opts) {
+    opts = opts || {};
+    var standings = computeStandings(state);
+    var n = effectiveAdvance(state);
+    if (n < 2) return { ok: false, error: '队伍数量不足，无法生成淘汰赛' };
+    if (state.meta.swissRounds && state.swiss.rounds.length < state.meta.swissRounds) {
+      return { ok: false, error: '瑞士轮还没打完（' + state.swiss.rounds.length + '/' + state.meta.swissRounds + '）' };
+    }
+    var seeded = standings.slice(0, n);
+    var allowed = {};
+    seeded.forEach(function (r) { allowed[r.teamId] = 1; });
+    var mode = opts.mode || 'seed';
+    var orderIds = null;
+    if (opts.order && opts.order.length === n) {
+      var seen = {};
+      var valid = opts.order.every(function (id) {
+        return allowed[id] && !seen[id] && (seen[id] = 1);
+      });
+      if (valid) orderIds = opts.order.slice();
+    }
+    if (!orderIds) {
+      var draw = drawKnockout(state, mode);
+      if (!draw.ok) return draw;
+      orderIds = draw.order;
+    }
+    var rounds = [];
+    var size = n;
+    while (size >= 2) {
+      var count = size / 2;
+      var matches = [];
+      for (var i = 0; i < count; i++) {
+        matches.push({
+          id: uid('k'),
+          aId: size === n ? orderIds[i * 2] : null,
+          bId: size === n ? orderIds[i * 2 + 1] : null,
+          aScore: null, bScore: null, aPens: null, bPens: null,
+          played: false, winnerId: null
+        });
+      }
+      rounds.push({ name: koRoundName(size), size: size, matches: matches });
+      size = size / 2;
+    }
+    state.ko = { built: true, rounds: rounds, champion: null, createdAt: nowISO(), mode: mode, order: orderIds };
+    propagateKo(state);
+    return { ok: true, mode: mode, order: orderIds };
+  }
+
+  function findKoMatch(state, id) {
+    for (var i = 0; i < state.ko.rounds.length; i++) {
+      var ms = state.ko.rounds[i].matches;
+      for (var j = 0; j < ms.length; j++) if (ms[j].id === id) return ms[j];
+    }
+    return null;
+  }
+
+  function propagateKo(state) {
+    if (!state.ko.built) return;
+    var rounds = state.ko.rounds;
+    for (var r = 1; r < rounds.length; r++) {
+      var prev = rounds[r - 1].matches;
+      rounds[r].matches.forEach(function (m, i) {
+        var a = prev[i * 2], b = prev[i * 2 + 1];
+        var aId = a && a.played ? a.winnerId : null;
+        var bId = b && b.played ? b.winnerId : null;
+        if (m.aId !== aId || m.bId !== bId) {
+          m.aId = aId; m.bId = bId;
+          m.aScore = null; m.bScore = null; m.aPens = null; m.bPens = null;
+          m.played = false; m.winnerId = null;
+        }
+      });
+    }
+    var finals = rounds[rounds.length - 1].matches;
+    state.ko.champion = finals[0] && finals[0].played ? finals[0].winnerId : null;
+  }
+
+  function setKoScore(state, id, as, bs, ap, bp) {
+    var m = findKoMatch(state, id);
+    if (!m) return { ok: false, error: '比赛不存在' };
+    if (!m.aId || !m.bId) return { ok: false, error: '对阵还没产生' };
+    as = int(as); bs = int(bs);
+    if (as < 0 || bs < 0 || as > 99 || bs > 99) return { ok: false, error: '比分需在 0–99 之间' };
+    ap = ap == null || ap === '' ? null : int(ap);
+    bp = bp == null || bp === '' ? null : int(bp);
+    var winner;
+    if (as > bs) winner = m.aId;
+    else if (as < bs) winner = m.bId;
+    else {
+      if (ap == null || bp == null) return { ok: false, error: '淘汰赛必须分出胜负，请填写点球比分' };
+      if (ap === bp) return { ok: false, error: '点球比分不能相同' };
+      winner = ap > bp ? m.aId : m.bId;
+    }
+    m.aScore = as; m.bScore = bs; m.aPens = ap; m.bPens = bp;
+    m.played = true; m.winnerId = winner;
+    propagateKo(state);
+    return { ok: true, winner: winner };
+  }
+
+  function clearKoScore(state, id) {
+    var m = findKoMatch(state, id);
+    if (!m) return;
+    m.aScore = null; m.bScore = null; m.aPens = null; m.bPens = null;
+    m.played = false; m.winnerId = null;
+    propagateKo(state);
+  }
+
+  /* ---------------- 重置 / 工具 ---------------- */
+
+  function resetCompetition(state, opts) {
+    opts = opts || {};
+    state.swiss = { rounds: [], current: 0 };
+    state.ko = { built: false, rounds: [], champion: null, createdAt: null };
+    if (!opts.keepDraw) state.draw = { done: false, order: [], at: null };
+  }
+
+  function teamById(state, id) {
+    return state.teams.filter(function (t) { return t.id === id; })[0] || null;
+  }
+
+  function playerCount(state, teamId) {
+    return state.players.filter(function (p) { return p.teamId === teamId; }).length;
+  }
+
+  function stats(state) {
+    var played = 0, goals = 0, upcoming = 0;
+    (state.swiss.rounds || []).forEach(function (r) {
+      r.matches.forEach(function (m) {
+        if (m.bye) return;
+        if (m.played) { played++; goals += num(m.homeScore) + num(m.awayScore); }
+        else upcoming++;
+      });
+    });
+    (state.ko.rounds || []).forEach(function (r) {
+      r.matches.forEach(function (m) {
+        if (m.aId && m.bId) {
+          if (m.played) { played++; goals += num(m.aScore) + num(m.bScore); }
+          else upcoming++;
+        }
+      });
+    });
+    return {
+      teams: state.teams.length, players: state.players.length,
+      played: played, goals: goals, upcoming: upcoming,
+      avgGoals: played ? (goals / played) : 0
+    };
+  }
+
+  function currentStage(state) {
+    if (state.ko.champion) return 'champion';
+    if (state.ko.built) return 'ko';
+    if (state.swiss.rounds.length) return 'swiss';
+    if (state.draw.done) return 'drawn';
+    if (state.teams.length >= 2) return 'teams';
+    if (state.players.length) return 'players';
+    return 'empty';
+  }
+
+  /* ---------------- 导出 ---------------- */
+
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function toCSV(rows) { return rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n'); }
+
+  function rosterCSV(state) {
+    var rows = [['队伍', '姓名', '号码', '位置', '电话']];
+    state.players.forEach(function (p) {
+      var t = teamById(state, p.teamId);
+      rows.push([t ? t.name : '', p.name, p.no, p.pos, p.phone]);
+    });
+    return toCSV(rows);
+  }
+
+  function standingsCSV(state) {
+    var rows = [['排名', '队伍', '赛', '胜', '平', '负', '进球', '失球', '净胜', '积分', '对手分']];
+    computeStandings(state).forEach(function (r) {
+      rows.push([r.rank, r.name, r.played, r.won, r.drawn, r.lost, r.gf, r.ga, r.gd, r.points, r.buchholz]);
+    });
+    return toCSV(rows);
+  }
+
+  function scheduleCSV(state) {
+    var rows = [['阶段', '轮次', '主队', '客队', '比分']];
+    state.swiss.rounds.forEach(function (r) {
+      r.matches.forEach(function (m) {
+        if (m.bye) { rows.push(['瑞士轮', '第 ' + r.no + ' 轮', teamById(state, m.homeId) ? teamById(state, m.homeId).name : '', '轮空', '']); return; }
+        rows.push(['瑞士轮', '第 ' + r.no + ' 轮', nameOf(state, m.homeId), nameOf(state, m.awayId), m.played ? m.homeScore + ' : ' + m.awayScore : '']);
+      });
+    });
+    state.ko.rounds.forEach(function (r) {
+      r.matches.forEach(function (m) {
+        if (!m.aId || !m.bId) return;
+        var sc = m.played ? m.aScore + ' : ' + m.bScore + (m.aPens != null ? ' (点球 ' + m.aPens + ':' + m.bPens + ')' : '') : '';
+        rows.push(['淘汰赛', r.name, nameOf(state, m.aId), nameOf(state, m.bId), sc]);
+      });
+    });
+    return toCSV(rows);
+  }
+
+  function nameOf(state, id) {
+    var t = teamById(state, id);
+    return t ? t.name : 'TBD';
+  }
+
+  return {
+    VERSION: VERSION,
+    COLORS: COLORS,
+    uid: uid,
+    createState: createState,
+    sanitizeState: sanitizeState,
+    parseTable: parseTable,
+    detectMapping: detectMapping,
+    importRows: importRows,
+    addTeam: addTeam,
+    updateTeam: updateTeam,
+    removeTeam: removeTeam,
+    addPlayer: addPlayer,
+    updatePlayer: updatePlayer,
+    removePlayer: removePlayer,
+    drawTeams: drawTeams,
+    computeStandings: computeStandings,
+    generateSwissRound: generateSwissRound,
+    setSwissScore: setSwissScore,
+    clearSwissScore: clearSwissScore,
+    effectiveAdvance: effectiveAdvance,
+    koSeeds: koSeeds,
+    drawKnockout: drawKnockout,
+    buildKnockout: buildKnockout,
+    setKoScore: setKoScore,
+    clearKoScore: clearKoScore,
+    propagateKo: propagateKo,
+    resetCompetition: resetCompetition,
+    bracketOrder: bracketOrder,
+    teamById: teamById,
+    playerCount: playerCount,
+    stats: stats,
+    currentStage: currentStage,
+    rosterCSV: rosterCSV,
+    teamsCSV: teamsCSV,
+    parseTeamList: parseTeamList,
+    importTeams: importTeams,
+    standingsCSV: standingsCSV,
+    scheduleCSV: scheduleCSV,
+    nameOf: nameOf
+  };
+});
+
+</script>
+<script>
+/* 战报图渲染：积分榜 + 本轮比分 + 下一轮对阵，输出 1080px 宽 PNG */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.ShareCard = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  var W = 1080;
+  var PAD = 56;
+  var TEXT = '#e9f5ee';
+  var MUTED = '#8aa79a';
+  var MUTED2 = '#63806f';
+  var GREEN = '#2ee66b';
+  var GOLD = '#f5c451';
+  var FONT = '"PingFang SC","Noto Sans CJK SC","Noto Sans SC","Source Han Sans SC","Microsoft YaHei","Droid Sans Fallback",sans-serif';
+
+  function txt(ctx, s, x, y, size, weight, color, align) {
+    ctx.font = (weight || 400) + ' ' + size + 'px ' + FONT;
+    ctx.fillStyle = color || TEXT;
+    ctx.textAlign = align || 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(s == null ? '' : s), x, y);
+  }
+
+  function fit(ctx, s, maxW) {
+    s = String(s == null ? '' : s);
+    if (ctx.measureText(s).width <= maxW) return s;
+    var lo = 0, hi = s.length;
+    while (lo < hi) {
+      var mid = Math.ceil((lo + hi) / 2);
+      if (ctx.measureText(s.slice(0, mid) + '…').width <= maxW) lo = mid;
+      else hi = mid - 1;
+    }
+    return s.slice(0, lo) + '…';
+  }
+
+  function rr(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function card(ctx, x, y, w, h) {
+    rr(ctx, x, y, w, h, 28);
+    ctx.fillStyle = 'rgba(255,255,255,.035)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(46,230,107,.10)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  function standingsH(n, cut) {
+    return 100 + n * 62 + (cut && n > cut ? 34 : 0) + 16;
+  }
+  function matchesH(n, big) {
+    return 100 + n * (big ? 72 : 62) + 16;
+  }
+
+  function measure(d) {
+    var h = 244;
+    if (d.champion) h += 180 + 28;
+    if (d.standings && d.standings.length) h += standingsH(d.standings.length, d.cut) + 28;
+    if (d.results && d.results.matches.length) h += matchesH(d.results.matches.length, hasPens(d.results)) + 28;
+    if (d.fixtures && d.fixtures.matches.length) h += matchesH(d.fixtures.matches.length, false) + 28;
+    if (d.note) h += 96 + 28;
+    h += 88;
+    return Math.round(h);
+  }
+
+  function hasPens(res) {
+    return res.matches.some(function (m) { return m.pens; });
+  }
+
+  function draw(canvas, d) {
+    var H = measure(d);
+    canvas.width = W;
+    canvas.height = H;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('无法创建画布');
+
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0e2119');
+    g.addColorStop(.55, '#0a1712');
+    g.addColorStop(1, '#070f0c');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    var glow = ctx.createRadialGradient(W - 60, -120, 0, W - 60, -120, 760);
+    glow.addColorStop(0, 'rgba(46,230,107,.20)');
+    glow.addColorStop(1, 'rgba(46,230,107,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, 640);
+
+    var y = PAD;
+
+    txt(ctx, (d.league || '况友杯') + (d.season ? ' · ' + d.season : ''), PAD, y + 14, 26, 700, GREEN);
+    txt(ctx, d.updated || '', W - PAD, y + 14, 22, 500, MUTED2, 'right');
+    y += 58;
+    txt(ctx, d.headline || '', PAD, y + 34, 64, 800, TEXT);
+    y += 84;
+    txt(ctx, d.meta || '', PAD, y + 14, 25, 400, MUTED);
+    y += 56;
+
+    var x = PAD, cw = W - PAD * 2;
+
+    if (d.champion) {
+      var ch = 180;
+      card(ctx, x, y, cw, ch);
+      ctx.strokeStyle = 'rgba(245,196,81,.35)';
+      rr(ctx, x, y, cw, ch, 28);
+      ctx.stroke();
+      txt(ctx, 'C H A M P I O N', x + 40, y + 44, 22, 700, GOLD);
+      txt(ctx, fit(ctx, d.champion.name, cw - 80), x + 40, y + 96, 46, 800, d.champion.color || GOLD);
+      txt(ctx, d.champion.line || '', x + 40, y + 142, 24, 500, MUTED);
+      y += ch + 28;
+    }
+
+    if (d.standings && d.standings.length) {
+      var n = d.standings.length;
+      var cut = d.cut || 0;
+      var h = standingsH(n, cut);
+      card(ctx, x, y, cw, h);
+      txt(ctx, '积分榜', x + 36, y + 44, 30, 700, TEXT);
+      if (cut && n > cut) txt(ctx, '前 ' + cut + ' 名进淘汰赛', x + cw - 36, y + 44, 21, 500, MUTED, 'right');
+
+      var right = x + cw - 36;
+      var xPts = right;
+      var xGd = right - 96;
+      var xWdl = right - 214;
+      var xPlayed = right - 330;
+      var xTeam = x + 106;
+      var teamMax = xPlayed - 62 - xTeam;
+
+      txt(ctx, '赛', xPlayed, y + 78, 20, 600, MUTED2, 'right');
+      txt(ctx, '胜/平/负', xWdl, y + 78, 20, 600, MUTED2, 'right');
+      txt(ctx, '净', xGd, y + 78, 20, 600, MUTED2, 'right');
+      txt(ctx, '分', xPts, y + 78, 20, 600, MUTED2, 'right');
+
+      var y0 = y + 100;
+      var gap = cut && n > cut ? 34 : 0;
+      d.standings.forEach(function (r, i) {
+        var top = y0 + i * 62 + (gap && i >= cut ? gap : 0);
+        var cy = top + 31;
+        if (cut && i < cut) {
+          ctx.fillStyle = 'rgba(46,230,107,.045)';
+          ctx.fillRect(x + 1, top, cw - 2, 62);
+          ctx.fillStyle = 'rgba(46,230,107,.55)';
+          ctx.fillRect(x + 16, top + 18, 3, 26);
+        }
+        var badgeColor = i === 0 ? GOLD : i === 1 ? '#cfd8dc' : i === 2 ? '#d08a52' : 'rgba(255,255,255,.07)';
+        var badgeText = i < 3 ? '#10160d' : MUTED;
+        ctx.fillStyle = badgeColor;
+        rr(ctx, x + 36, cy - 16, 32, 32, 10);
+        ctx.fill();
+        txt(ctx, r.rank, x + 52, cy + 1, 19, 800, badgeText, 'center');
+
+        ctx.fillStyle = r.color || GREEN;
+        ctx.beginPath();
+        ctx.arc(xTeam, cy, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        txt(ctx, fit(ctx, r.name, teamMax), xTeam + 18, cy, 28, 600, TEXT);
+        txt(ctx, r.played, xPlayed, cy, 26, 500, MUTED, 'right');
+        txt(ctx, r.w + '-' + r.d + '-' + r.l, xWdl, cy, 26, 500, MUTED, 'right');
+        txt(ctx, (r.gd > 0 ? '+' : '') + r.gd, xGd, cy, 26, 500, r.gd > 0 ? TEXT : MUTED, 'right');
+        txt(ctx, r.points, xPts, cy, 28, 800, TEXT, 'right');
+      });
+
+      if (gap) {
+        var ly = y0 + cut * 62 + 17;
+        ctx.save();
+        ctx.setLineDash([8, 8]);
+        ctx.strokeStyle = 'rgba(46,230,107,.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x + 28, ly);
+        ctx.lineTo(x + cw - 128, ly);
+        ctx.stroke();
+        ctx.restore();
+        txt(ctx, '晋级线', x + cw - 36, ly, 18, 700, GREEN, 'right');
+      }
+      y += h + 28;
+    }
+
+    if (d.results && d.results.matches.length) {
+      var big = hasPens(d.results);
+      var rh = big ? 72 : 62;
+      var hh = matchesH(d.results.matches.length, big);
+      card(ctx, x, y, cw, hh);
+      txt(ctx, d.results.title, x + 36, y + 44, 30, 700, TEXT);
+      var cx = x + cw / 2;
+      d.results.matches.forEach(function (m, i) {
+        var cy = y + 100 + i * rh + rh / 2;
+        var s = (m.hs == null ? '-' : m.hs) + ' : ' + (m.as == null ? '-' : m.as);
+        var winH = m.hs != null && m.as != null && m.hs > m.as;
+        var winA = m.hs != null && m.as != null && m.as > m.hs;
+        txt(ctx, fit(ctx, m.home, 300), cx - 110, cy - (big ? 6 : 0), 27, 600, winH ? GREEN : TEXT, 'right');
+        txt(ctx, fit(ctx, m.away, 300), cx + 110, cy - (big ? 6 : 0), 27, 600, winA ? GREEN : TEXT, 'left');
+        ctx.font = '800 30px ' + FONT;
+        ctx.fillStyle = '#0a1510';
+        rr(ctx, cx - 58, cy - 24, 116, 48, 14);
+        ctx.fill();
+        txt(ctx, s, cx, cy + 1, 30, 800, TEXT, 'center');
+        if (m.pens) txt(ctx, '点球 ' + m.pens, cx, cy + 22, 18, 500, MUTED2, 'center');
+      });
+      y += hh + 28;
+    }
+
+    if (d.fixtures && d.fixtures.matches.length) {
+      var fh = matchesH(d.fixtures.matches.length, false);
+      card(ctx, x, y, cw, fh);
+      txt(ctx, d.fixtures.title, x + 36, y + 44, 30, 700, TEXT);
+      var fx = x + cw / 2;
+      d.fixtures.matches.forEach(function (m, i) {
+        var cy = y + 100 + i * 62 + 31;
+        txt(ctx, fit(ctx, m.home, 300), fx - 70, cy, 27, 600, TEXT, 'right');
+        txt(ctx, 'VS', fx, cy, 22, 700, MUTED2, 'center');
+        txt(ctx, fit(ctx, m.away, 300), fx + 70, cy, 27, 600, TEXT, 'left');
+      });
+      y += fh + 28;
+    }
+
+    if (d.note) {
+      card(ctx, x, y, cw, 96);
+      txt(ctx, d.note, x + cw / 2, y + 48, 26, 500, MUTED, 'center');
+      y += 96 + 28;
+    }
+
+    txt(ctx, '更新于 ' + (d.updated || '') + ' · ' + (d.footer || '数据来自本机记录'), W / 2, H - 44, 21, 400, MUTED2, 'center');
+    return { width: W, height: H };
+  }
+
+  return { draw: draw, measure: measure };
+});
+
+</script>
+<script>
+/* 足球联赛 · 界面逻辑 */
+(function () {
+  'use strict';
+
+  var E = window.Engine;
+  var LS_KEY = 'football-league.v1';
+  var THEME = ['#22c55e', '#38bdf8', '#f59e0b', '#ef4444', '#a855f7', '#14b8a6', '#f472b6', '#eab308', '#6366f1', '#84cc16', '#f97316', '#06b6d4'];
+
+  var state = loadState();
+  var storageOK = (function () {
+    try {
+      localStorage.setItem('__fl_probe', '1');
+      localStorage.removeItem('__fl_probe');
+      return true;
+    } catch (err) { return false; }
+  })();
+  var ui = { tab: 'overview', swissRound: null, parsed: null, board: false, koMode: 'seed', swissMode: 'auto', share: null };
+  var confirmResolve = null;
+  var toastTimer = null;
+
+  /* ================= 基础 ================= */
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (!raw) return E.createState();
+      var st = E.sanitizeState(JSON.parse(raw));
+      if (st.meta.name === '城市足球联赛') st.meta.name = '况友杯';
+      return st;
+    } catch (err) {
+      console.warn('读取本地数据失败', err);
+      return E.createState();
+    }
+  }
+
+  function save() {
+    if (!storageOK) return;
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+    } catch (err) {
+      toast('本地保存失败：' + err.message, true);
+    }
+  }
+
+  function esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function $(id) { return document.getElementById(id); }
+
+  function toast(msg, isErr) {
+    var el = $('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.className = 'toast'; }, 2600);
+  }
+
+  function modal(html) {
+    $('modal').innerHTML = '<div class="modal-mask" data-mask="1"><div class="modal-card">' + html + '</div></div>';
+  }
+
+  function closeModal() {
+    if (ui.share && ui.share.url) {
+      try { URL.revokeObjectURL(ui.share.url); } catch (err) { /* ignore */ }
+    }
+    ui.share = null;
+    $('modal').innerHTML = '';
+    ui.board = false;
+  }
+
+  function confirmBox(title, html, okText) {
+    return new Promise(function (resolve) {
+      confirmResolve = resolve;
+      modal(
+        '<div class="modal-head"><h2>' + esc(title) + '</h2></div>' +
+        '<p class="hint">' + html + '</p>' +
+        '<div class="row gap">' +
+        '<button class="btn" style="flex:1" data-act="confirm-no">取消</button>' +
+        '<button class="btn btn-danger" style="flex:1" data-act="confirm-yes">' + esc(okText || '确认') + '</button>' +
+        '</div>'
+      );
+    });
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' +
+      String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  /* ================= 阶段 ================= */
+
+  function stageCur() {
+    var teams = state.teams.length;
+    if (!teams) return 0;
+    if (state.ko.champion) return 4;
+    if (state.ko.built) return 3;
+    if (state.swiss.rounds.length || state.draw.done) return 2;
+    return 1;
+  }
+
+  function stagebarHTML() {
+    var cur = stageCur();
+    var html = '';
+    for (var i = 0; i < 5; i++) {
+      var cls = i < cur ? 'done' : (i === cur ? 'current' : '');
+      if (cur === 4) cls = 'done';
+      html += '<span class="seg ' + cls + '"></span>';
+    }
+    return html;
+  }
+
+  function subtitle() {
+    if (!state.teams.length) return '报名 · 抽签 · 瑞士轮 · 淘汰赛';
+    return state.teams.length + ' 支队伍 · ' + state.meta.swissRounds + ' 轮瑞士轮' +
+      (state.meta.season ? ' · ' + state.meta.season : '');
+  }
+
+  /* ================= 总览 ================= */
+
+  function heroInfo() {
+    var teams = state.teams.length;
+    if (teams < 2) {
+      return {
+        eyebrow: 'STEP 1 · 报名',
+        title: teams ? '还差 ' + (2 - teams) + ' 支队伍就能开赛' : '先把参赛队伍登记进来',
+        desc: '把报名名单粘贴进来：支持 Markdown 表格、「序号 队伍名称」两列、CSV，一行一支队；也可以手动添加。',
+        btn: '导入队伍',
+        act: 'open-import'
+      };
+    }
+    if (!state.draw.done) {
+      return { eyebrow: 'STEP 2 · 抽签', title: '名单齐了，抽签定签位', desc: teams + ' 支队伍随机排入 1–' + teams + ' 号签位。签位相邻的两支队伍组成瑞士轮第 1 轮对阵。', btn: '开始抽签', act: 'go-draw' };
+    }
+    if (!state.ko.built) {
+      var rounds = state.swiss.rounds;
+      if (!rounds.length) {
+        return { eyebrow: 'STEP 3 · 瑞士轮', title: '签位已定，开踢第 1 轮', desc: '按积分分组配对，全程不重复对阵；每轮结束自动更新积分榜，共 ' + state.meta.swissRounds + ' 轮。', btn: '开始第 1 轮', act: 'gen-round' };
+      }
+      var last = rounds[rounds.length - 1];
+      var pending = last.matches.filter(function (m) { return !m.played; }).length;
+      if (pending) {
+        return { eyebrow: '瑞士轮 · 第 ' + last.no + ' 轮', title: '还有 ' + pending + ' 场没录比分', desc: '录完第 ' + last.no + ' 轮全部比分，就能按积分生成下一轮对阵。', btn: '去录比分', act: 'tab', tab: 'swiss' };
+      }
+      if (rounds.length < state.meta.swissRounds) {
+        return { eyebrow: '瑞士轮 · 第 ' + last.no + ' 轮结束', title: '本轮结束，生成下一轮', desc: '按当前积分重新分组，让战绩接近的队伍互相交手。', btn: '生成第 ' + (last.no + 1) + ' 轮', act: 'gen-round' };
+      }
+      var adv = E.effectiveAdvance(state);
+      return { eyebrow: 'STEP 4 · 淘汰赛', title: '瑞士轮完成，准备淘汰赛', desc: '积分榜前 ' + adv + ' 名进入淘汰赛，按种子高低交叉对阵（1 对 ' + adv + '、4 对 ' + (adv - 3) + '…），单场决胜。', btn: '生成淘汰赛对阵', act: 'build-ko' };
+    }
+    if (state.ko.champion) {
+      var champ = E.teamById(state, state.ko.champion);
+      return { eyebrow: 'CHAMPION', title: (champ ? champ.name : '冠军') + ' 夺冠！', desc: '全部赛程结束。可以在「数据」里导出队伍名单、积分和完整赛程存档。', btn: '回看淘汰赛', act: 'tab', tab: 'ko' };
+    }
+    return { eyebrow: 'STEP 4 · 淘汰赛', title: '淘汰赛进行中', desc: '点对阵卡片录入比分；淘汰赛平局要补点球比分，点球更准的一方晋级。', btn: '继续比赛', act: 'tab', tab: 'ko' };
+  }
+
+  function activeRound() {
+    if (state.ko.built && state.ko.rounds.length) {
+      var kr = state.ko.rounds;
+      for (var i = 0; i < kr.length; i++) {
+        var need = kr[i].matches.some(function (m) { return m.aId && m.bId && !m.played; });
+        if (need) return { kind: 'ko', round: kr[i], label: kr[i].name };
+      }
+      var fin = kr[kr.length - 1];
+      return { kind: 'ko', round: fin, label: fin.name };
+    }
+    var rs = state.swiss.rounds;
+    if (rs.length) return { kind: 'swiss', round: rs[rs.length - 1], label: '第 ' + rs[rs.length - 1].no + ' 轮' };
+    return null;
+  }
+
+  function metric(v, label) {
+    return '<div class="metric"><b>' + esc(v) + '</b><span>' + esc(label) + '</span></div>';
+  }
+
+  function quickMatchBar(ar, limit) {
+    var html = '<div class="quick-list">';
+    var shown = 0;
+    ar.round.matches.forEach(function (m) {
+      if (shown >= limit) return;
+      var homeId = ar.kind === 'ko' ? m.aId : m.homeId;
+      var awayId = ar.kind === 'ko' ? m.bId : m.awayId;
+      if (!homeId) return;
+      shown++;
+      var hn = E.nameOf(state, homeId);
+      var an = awayId ? E.nameOf(state, awayId) : '轮空';
+      var score, pending = false;
+      if (m.bye) { score = '轮空'; pending = true; }
+      else if (m.played) score = m.homeScore + ' : ' + m.awayScore;
+      else { score = 'VS'; pending = true; }
+      if (ar.kind === 'ko' && m.played) score = m.aScore + ' : ' + m.bScore;
+      html += '<div class="quick-match"><span class="t">' + esc(hn) + '</span>' +
+        '<span class="s' + (pending ? ' pending' : '') + '">' + esc(score) + '</span>' +
+        '<span class="t r">' + esc(an) + '</span></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function viewOverview() {
+    var hero = heroInfo();
+    var st = E.stats(state);
+    var html = '<section class="hero">' +
+      '<span class="eyebrow">' + esc(hero.eyebrow) + '</span>' +
+      '<h2>' + esc(hero.title) + '</h2>' +
+      '<p>' + esc(hero.desc) + '</p>' +
+      '<button class="btn btn-primary" data-act="' + hero.act + '"' + (hero.tab ? ' data-tab="' + hero.tab + '"' : '') + '>' + esc(hero.btn) + '</button>' +
+      '</section>';
+
+    if (!state.teams.length) {
+      html += '<p class="tiny" style="text-align:center;margin-top:10px"><a href="#" data-act="load-demo">没有数据？先载入 16 队示例看看效果</a></p>';
+    }
+    html += '<div class="metrics">' +
+      metric(st.teams, '队伍') + metric(st.played, '已赛') +
+      metric(st.avgGoals.toFixed(1), '场均进球') + metric(st.goals, '总进球') +
+      '</div>';
+
+    var ar = activeRound();
+    if (ar) {
+      html += '<div class="section"><div class="section-head"><h3>' + esc(ar.label) + ' 对阵</h3>' +
+        '<button class="btn btn-sm" data-act="tab" data-tab="' + (ar.kind === 'ko' ? 'ko' : 'swiss') + '">全部 ›</button></div>' +
+        quickMatchBar(ar, 4) + '</div>';
+    } else if (!state.swiss.rounds.length) {
+      html += '<div class="section"><div class="section-head"><h3>开赛三步</h3></div>' +
+        '<div class="card" style="padding:2px 0">' +
+        startRow('1', '导入队伍名单', state.teams.length ? '已登记 ' + state.teams.length + ' 支队伍' : '粘贴名单，一行一支队', state.teams.length ? 'done' : '') +
+        startRow('2', '抽签定签位', state.draw.done ? '已生成签位' : '随机排位，决定首轮对阵', state.draw.done ? 'done' : '') +
+        startRow('3', '开始瑞士轮', state.swiss.rounds.length ? '进行中' : '每轮按积分配对，不重复交手', state.swiss.rounds.length ? 'current' : '') +
+        '</div></div>';
+    }
+
+    if (state.swiss.rounds.length) {
+      var rows = E.computeStandings(state);
+      html += '<div class="section"><div class="section-head"><h3>积分榜</h3>' +
+        '<button class="btn btn-sm" data-act="tab" data-tab="swiss">完整 ›</button></div>' +
+        standingsTable(rows, { limit: 5 }) + '</div>';
+    }
+
+    html += '<p class="foot">数据只保存在这台设备的浏览器里，换设备前请到「数据」导出备份。</p>';
+    return html;
+  }
+
+  function startRow(no, title, sub, stateCls) {
+    return '<div class="list-row">' +
+      '<span class="ic" style="' + (stateCls === 'done' ? 'background:rgba(46,230,107,.16);color:#2ee66b' : '') + '">' + (stateCls === 'done' ? '✓' : no) + '</span>' +
+      '<div class="tx"><b>' + esc(title) + '</b><span>' + esc(sub) + '</span></div>' +
+      '</div>';
+  }
+
+  function rankBadge(rank) {
+    var cls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+    return '<span class="rank-badge ' + cls + '">' + rank + '</span>';
+  }
+
+  function standingsTable(rows, opts) {
+    opts = opts || {};
+    var adv = E.effectiveAdvance(state);
+    var list = opts.limit ? rows.slice(0, opts.limit) : rows;
+    var html = '<div class="table-wrap"><table class="standings"><thead><tr>' +
+      '<th>#</th><th>队伍</th><th>赛</th><th>胜/平/负</th><th>净</th><th>分</th>' +
+      '</tr></thead><tbody>';
+    list.forEach(function (r) {
+      var cut = adv && rows.length > adv && r.rank === adv;
+      html += '<tr class="' + (cut ? 'cut' : '') + '">' +
+        '<td>' + rankBadge(r.rank) + '</td>' +
+        '<td><div class="team-cell"><span class="dot" style="background:' + esc(r.color || '#2ee66b') + '"></span><span>' + esc(r.name) + '</span></div></td>' +
+        '<td>' + r.played + '</td>' +
+        '<td>' + r.won + '-' + r.drawn + '-' + r.lost + '</td>' +
+        '<td>' + (r.gd > 0 ? '+' : '') + r.gd + '</td>' +
+        '<td class="pts">' + r.points + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    if (adv && rows.length > adv) {
+      html += '<p class="tiny muted" style="margin:7px 2px 0">虚线以上 ' + adv + ' 队晋级淘汰赛 · 同分按净胜球 → 进球 → 对手分排序</p>';
+    } else {
+      html += '<p class="tiny muted" style="margin:7px 2px 0">同分按净胜球 → 进球 → 对手分排序</p>';
+    }
+    return html;
+  }
+
+  /* ================= 名单 ================= */
+
+  function viewTeams() {
+    if (!state.teams.length) {
+      return '<div class="empty"><span class="em">\ud83d\udee1\ufe0f</span><h3>还没有参赛队伍</h3>' +
+        '<p>把报名名单直接粘贴进来：一行一支队伍，支持「01 云海生烟」两列、Markdown 表格或 CSV。</p>' +
+        '<div class="row"><button class="btn btn-primary" data-act="open-import">导入队伍</button>' +
+        '<button class="btn" data-act="add-team">手动添加</button></div>' +
+        '<p class="tiny" style="margin-top:16px"><a href="#" data-act="load-demo">载入 16 队示例数据看看</a></p></div>';
+    }
+    var html = '<div class="row wrap gap" style="margin-top:2px">' +
+      '<button class="btn btn-sm btn-primary" data-act="open-import">导入队伍</button>' +
+      '<button class="btn btn-sm" data-act="add-team">+ 队伍</button>' +
+      '<span class="spacer"></span>' +
+      '<button class="btn btn-sm" data-act="export-teams">导出 CSV</button>' +
+      '</div>' +
+      '<input id="teamSearch" class="search" type="search" placeholder="搜索队伍" autocomplete="off">';
+
+    var points = {};
+    if (state.swiss.rounds.length) {
+      E.computeStandings(state).forEach(function (r) { points[r.teamId] = r; });
+    }
+    html += '<div class="list-card" style="margin-top:12px">';
+    state.teams.forEach(function (t, i) {
+      var pt = points[t.id];
+      html += '<button class="team-row" data-act="team-edit" data-id="' + t.id + '" data-search="' + esc((t.name + ' ' + (i + 1)).toLowerCase()) + '">' +
+        '<span class="seed">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<span class="dot" style="background:' + esc(t.color) + '"></span>' +
+        '<span class="nm">' + esc(t.name) + '</span>' +
+        (pt ? '<span class="pts-badge">' + pt.points + ' 分</span>' : '') +
+        '<span class="chev">\u203a</span></button>';
+    });
+    html += '</div>';
+    html += '<p class="hint" style="margin-top:12px">共 ' + state.teams.length + ' 支队伍 \u00b7 淘汰赛建议 4 / 8 / 16 支；点队伍可改名或删除。</p>';
+    return html;
+  }
+
+  function filterTeams(q) {
+    q = String(q || '').trim().toLowerCase();
+    Array.prototype.forEach.call(document.querySelectorAll('.team-row'), function (row) {
+      var hit = !q || (row.getAttribute('data-search') || '').indexOf(q) >= 0;
+      row.classList.toggle('hidden', !hit);
+    });
+  }
+
+  function viewDraw() {
+    if (state.teams.length < 2) {
+      return '<div class="empty"><span class="em">🎲</span><h3>队伍还不够</h3>' +
+        '<p>至少需要 2 支队伍才能抽签，先去导入或添加队伍。</p>' +
+        '<button class="btn btn-primary" data-act="tab" data-tab="teams">去导入队伍</button></div>';
+    }
+    var n = state.teams.length;
+    if (!state.draw.done) {
+      var html = '<div class="draw-stage"><span class="big-ball">🎲</span>' +
+        '<h2>' + n + ' 支队伍等待抽签</h2>' +
+        '<p>随机打乱顺序，生成 1–' + n + ' 号签位。签位相邻的两队组成第 1 轮对阵，之后按积分重新配对。</p>' +
+        '<button class="btn btn-primary" data-act="do-draw">开始抽签</button></div>';
+      html += '<div class="section"><div class="section-head"><h3>参赛队伍</h3><span class="sub">按报名顺序</span></div><div class="slots">';
+      state.teams.forEach(function (t, i) {
+        html += '<div class="slot"><span class="no">' + (i + 1) + '</span>' +
+          '<span class="dot" style="background:' + esc(t.color) + '"></span>' +
+          '<span class="nm">' + esc(t.name) + '</span>' +
+          '<span class="vs-mark">' + (t.seed === 1 ? '1 号种子' : '种子 ' + t.seed) + '</span></div>';
+      });
+      html += '</div></div>';
+      return html;
+    }
+    var ordered = state.draw.order.map(function (id) { return E.teamById(state, id); }).filter(Boolean);
+    var started = state.swiss.rounds.length > 0;
+    var html2 = '<div class="draw-stage" style="padding:18px 16px">' +
+      '<span class="big-ball" style="animation:none;font-size:32px">✅</span>' +
+      '<h2>抽签完成</h2>' +
+      '<p>生成于 ' + esc(fmtDate(state.draw.at)) + ' · ' + ordered.length + ' 支队伍</p>' +
+      '<div class="row" style="justify-content:center;margin-top:14px">' +
+      '<button class="btn" data-act="redraw"' + (started ? ' disabled' : '') + '>重新抽签</button>' +
+      '<button class="btn btn-primary" data-act="gen-round"' + (started ? ' style="display:none"' : '') + '>开始第 1 轮</button>' +
+      (started ? '<button class="btn btn-primary" data-act="tab" data-tab="swiss">去瑞士轮</button>' : '') +
+      '</div></div>';
+
+    html2 += '<div class="section"><div class="section-head"><h3>签位</h3><span class="sub">1 对 2 · 3 对 4 · …</span></div><div class="slots">';
+    for (var i = 0; i < ordered.length; i += 2) {
+      html2 += '<div class="slot" style="margin-bottom:4px"><span class="no">' + (i + 1) + '</span>' +
+        '<span class="dot" style="background:' + esc(ordered[i].color) + '"></span>' +
+        '<span class="nm">' + esc(ordered[i].name) + '</span></div>';
+      if (ordered[i + 1]) {
+        html2 += '<div class="slot" style="margin-bottom:10px"><span class="no">' + (i + 2) + '</span>' +
+          '<span class="dot" style="background:' + esc(ordered[i + 1].color) + '"></span>' +
+          '<span class="nm">' + esc(ordered[i + 1].name) + '</span>' +
+          '<span class="vs-mark">VS</span></div>';
+      }
+    }
+    html2 += '</div></div>';
+    return html2;
+  }
+
+  /* ================= 瑞士轮 ================= */
+
+  function viewSwiss() {
+    if (state.teams.length < 2) {
+      return '<div class="empty"><span class="em">⚔️</span><h3>还没有队伍</h3><p>先导入队伍名单，抽签后开始瑞士轮。</p>' +
+        '<button class="btn btn-primary" data-act="open-import">导入队伍</button></div>';
+    }
+    if (!state.draw.done) {
+      return '<div class="empty"><span class="em">🎲</span><h3>先完成抽签</h3><p>签位决定第 1 轮的对阵顺序，抽签之后才能开始瑞士轮。</p>' +
+        '<button class="btn btn-primary" data-act="go-draw">去抽签</button></div>';
+    }
+    var rounds = state.swiss.rounds;
+    var max = state.meta.swissRounds;
+
+    if (!rounds.length) {
+      return '<div class="draw-stage"><span class="big-ball">⚔️</span>' +
+        '<h2>瑞士轮 · 共 ' + max + ' 轮</h2>' +
+        '<p>每轮按积分排序配对：战绩接近的队伍相遇，且全程不重复对阵。' +
+        (state.teams.length % 2 ? '奇数支队伍，每轮会有一队轮空（记 3 分）。' : '') + '</p>' +
+        '<button class="btn btn-primary" data-act="gen-round">开始第 1 轮</button></div>';
+    }
+
+    var activeNo = ui.swissRound || rounds[rounds.length - 1].no;
+    var round = rounds.filter(function (r) { return r.no === activeNo; })[0] || rounds[rounds.length - 1];
+    var allPlayed = round.matches.every(function (m) { return m.played; });
+    var lastRound = rounds[rounds.length - 1];
+    var lastAllPlayed = lastRound.matches.every(function (m) { return m.played; });
+
+    var html = '<div class="round-chips">';
+    rounds.forEach(function (r) {
+      var done = r.matches.every(function (m) { return m.played; });
+      html += '<button class="round-chip' + (r.no === round.no ? ' active' : '') + '" data-act="swiss-round" data-no="' + r.no + '">第 ' + r.no + ' 轮' + (done ? ' <span class="ok">✓</span>' : '') + '</button>';
+    });
+    if (rounds.length < max) html += '<button class="round-chip" data-act="gen-round">+ 下一轮</button>';
+    html += '</div>';
+
+    html += '<div class="matches">';
+    round.matches.forEach(function (m, idx) {
+      if (m.bye) {
+        var bt = E.teamById(state, m.homeId);
+        html += '<div class="match bye"><div class="match-meta"><span>第 ' + round.no + ' 轮 · 轮空</span><span>自动记 3 分</span></div>' +
+          '<div class="side"><span class="dot" style="background:' + esc(bt ? bt.color : '#2ee66b') + '"></span>' +
+          '<span class="nm">' + esc(bt ? bt.name : '轮空') + '</span><span class="badge green">+3</span></div></div>';
+        return;
+      }
+      var H = E.teamById(state, m.homeId), A = E.teamById(state, m.awayId);
+      var hs = m.homeScore, as = m.awayScore;
+      var winH = m.played && hs > as, winA = m.played && as > hs;
+      html += '<div class="match' + (m.played ? ' played' : '') + '" data-match="' + m.id + '">' +
+        '<div class="match-meta"><span>第 ' + round.no + ' 轮 · 第 ' + (idx + 1) + ' 场</span>' +
+        '<span>' + (m.played ? '<span class="badge green">已结束</span>' : '<span class="badge">未开始</span>') + '</span></div>' +
+        '<div class="side' + (winH ? ' win' : '') + (m.played && !winH && hs < as ? ' lose' : '') + '">' +
+        '<span class="dot" style="background:' + esc(H ? H.color : '#2ee66b') + '"></span>' +
+        '<span class="nm">' + esc(H ? H.name : '待定') + '</span>' +
+        '<input class="score" data-side="h" type="number" inputmode="numeric" min="0" max="99" placeholder="-" value="' + (m.homeScore == null ? '' : m.homeScore) + '"></div>' +
+        '<div class="side' + (winA ? ' win' : '') + (m.played && !winA && as < hs ? ' lose' : '') + '">' +
+        '<span class="dot" style="background:' + esc(A ? A.color : '#2ee66b') + '"></span>' +
+        '<span class="nm">' + esc(A ? A.name : '待定') + '</span>' +
+        '<input class="score" data-side="a" type="number" inputmode="numeric" min="0" max="99" placeholder="-" value="' + (m.awayScore == null ? '' : m.awayScore) + '"></div>' +
+        '<div class="match-foot"><span class="hint">' + (m.played ? '要改比分直接改数字再保存' : '填好双方比分后保存') + '</span>' +
+        '<button class="btn btn-sm' + (m.played ? '' : ' btn-primary') + '" data-act="swiss-save" data-id="' + m.id + '">保存</button></div>' +
+        '</div>';
+    });
+    html += '</div>';
+
+    if (lastAllPlayed && rounds.length < max) {
+      var sm = ui.swissMode || 'auto';
+      html += '<div class="section"><div class="row" style="justify-content:center;gap:6px;margin-bottom:10px">' +
+        '<button class="round-chip' + (sm === 'auto' ? ' active' : '') + '" data-act="swiss-mode" data-mode="auto">自动配对</button>' +
+        '<button class="round-chip' + (sm === 'lottery' ? ' active' : '') + '" data-act="swiss-mode" data-mode="lottery">抽签配对</button>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-block" data-act="gen-round">' + (sm === 'lottery' ? '抽签生成第 ' : '生成第 ') + (rounds.length + 1) + ' 轮对阵</button>' +
+        '<p class="hint" style="text-align:center;margin-top:8px">' +
+        (sm === 'lottery' ? '同积分的队伍里抽签决定谁碰谁，仍然不重复对阵' : '按当前积分与排名自动配对，不重复对阵') +
+        '</p></div>';
+    }
+    if (lastAllPlayed && rounds.length >= max && !state.ko.built) {
+      html += '<div class="section"><button class="btn btn-primary btn-block" data-act="build-ko">瑞士轮结束，生成淘汰赛</button></div>';
+    }
+    if (!allPlayed && round.no === rounds.length) {
+      html += '<p class="hint" style="text-align:center;margin-top:12px">录完本轮全部比分后，才能生成下一轮</p>';
+    }
+
+    var rows = E.computeStandings(state);
+    html += '<div class="section"><div class="section-head"><h3>积分榜</h3>' +
+      '<div class="row"><button class="btn btn-sm" data-act="share-card">分享图</button>' +
+      '<button class="btn btn-sm" data-act="board">大屏比分板</button></div></div>' +
+      standingsTable(rows, {}) + '</div>';
+    return html;
+  }
+
+  /* ================= 淘汰赛 ================= */
+
+  function viewKo() {
+    if (!state.teams.length) {
+      return '<div class="empty"><span class="em">🏆</span><h3>还没有队伍</h3><p>先完成报名、抽签和瑞士轮，再来打淘汰赛。</p>' +
+        '<button class="btn btn-primary" data-act="open-import">导入队伍</button></div>';
+    }
+    if (!state.ko.built) {
+      var swissDone = state.swiss.rounds.length >= state.meta.swissRounds &&
+        state.swiss.rounds.every(function (r) { return r.matches.every(function (m) { return m.played; }); });
+      var standings = E.computeStandings(state);
+      var n = E.effectiveAdvance(state);
+      var seeded = standings.slice(0, n);
+      var mode = ui.koMode || 'seed';
+      var html = '<div class="ko-empty"><span class="big-ball" style="animation:none;font-size:32px">🏆</span>' +
+        '<h2 style="font-size:17px">淘汰赛 · 前 ' + n + ' 名晋级</h2>' +
+        '<p class="hint" style="margin-top:6px">从积分榜取前 ' + n + ' 名，单场决胜，平局踢点球。对阵怎么定，你说了算。</p>' +
+        '<div class="field" style="margin-top:14px"><label>对阵怎么定</label><div class="radio-row">' +
+        koModeChip('seed', '按积分', mode) +
+        koModeChip('tier', '分档抽签', mode) +
+        koModeChip('random', '完全随机', mode) +
+        '</div></div>' +
+        '<p class="hint" style="margin-top:8px">' + koModeDesc(mode, n) + '</p>';
+
+      if (mode === 'seed' && seeded.length && n >= 2) {
+        var slotOrder = E.bracketOrder(n);
+        html += '<div class="seed-pairs">';
+        for (var i = 0; i < slotOrder.length; i += 2) {
+          var sa = slotOrder[i], sb = slotOrder[i + 1];
+          html += '<div class="seed-pair"><span class="badge">#' + sa + '</span>' +
+            '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(seeded[sa - 1].name) + '</span>' +
+            '<span class="vs">VS</span>' +
+            '<span style="flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(seeded[sb - 1].name) + '</span>' +
+            '<span class="badge">#' + sb + '</span></div>';
+        }
+        html += '</div>';
+      } else if (mode === 'tier' && seeded.length && n >= 2) {
+        html += tierPreview(seeded, n);
+      } else if (seeded.length) {
+        html += '<div class="seed-pairs"><div class="seed-pair" style="align-items:flex-start"><span class="badge">随机</span>' +
+          '<span style="flex:1;font-size:11.5px;line-height:1.7">' + seeded.map(function (r) { return esc(r.name); }).join(' · ') + '</span></div></div>';
+      }
+
+      var btnLabel = mode === 'seed' ? '生成淘汰赛对阵' : '开始抽签';
+      html += '<button class="btn btn-primary btn-block" data-act="build-ko"' + (swissDone ? '' : ' disabled') + '>' + btnLabel + '</button>';
+      if (!swissDone) html += '<p class="hint" style="text-align:center;margin-top:8px">瑞士轮还没打完（' + state.swiss.rounds.length + '/' + state.meta.swissRounds + ' 轮）</p>';
+      html += '</div>';
+      return html;
+    }
+
+    var ko = state.ko;
+    var anyPlayed = ko.rounds.some(function (r) { return r.matches.some(function (m) { return m.played; }); });
+    var html2 = '';
+    if (ko.champion) {
+      var ct = E.teamById(state, ko.champion);
+      var fin = ko.rounds[ko.rounds.length - 1].matches[0];
+      html2 += '<div class="champion"><span class="cup">🏆</span><span class="label">CHAMPION</span>' +
+        '<h2 style="color:' + esc(ct ? ct.color : '#f5c451') + '">' + esc(ct ? ct.name : '冠军') + '</h2>' +
+        '<p>决赛比分 ' + fin.aScore + ' : ' + fin.bScore + (fin.aPens != null ? '（点球 ' + fin.aPens + ':' + fin.bPens + '）' : '') + '</p></div>';
+    }
+    html2 += '<div class="section"><div class="section-head"><h3>对阵图 <span class="badge">' + koModeLabel(ko.mode) + '</span></h3>' +
+      '<div class="row">' +
+      (anyPlayed ? '' : '<button class="btn btn-sm" data-act="redraw-ko">重新抽签</button>') +
+      '<button class="btn btn-sm" data-act="share-card">分享图</button>' +
+      '<button class="btn btn-sm" data-act="board">大屏比分板</button></div></div>' +
+      '<div class="bracket">';
+    ko.rounds.forEach(function (r) {
+      html2 += '<div class="bracket-col"><h4>' + esc(r.name) + '</h4><div class="col-body">';
+      r.matches.forEach(function (m) {
+        html2 += koMatchHTML(m, r.name);
+      });
+      html2 += '</div></div>';
+    });
+    html2 += '</div></div>';
+    html2 += '<p class="hint" style="margin-top:4px">点对阵卡片录入或修改比分 · 淘汰赛平局必须补点球</p>';
+    return html2;
+  }
+
+  function koModeChip(value, label, current) {
+    return '<label class="radio-chip' + (current === value ? ' on' : '') + '">' +
+      '<input type="radio" name="komode" value="' + value + '"' + (current === value ? ' checked' : '') + '>' + label + '</label>';
+  }
+
+  function koModeDesc(mode, n) {
+    if (mode === 'tier') {
+      return '前 ' + (n / 2) + ' 名一档、后 ' + (n / 2) + ' 名一档，抽签时每场一档对二档：瑞士轮成绩越好，越晚碰强队。';
+    }
+    if (mode === 'random') {
+      return '不设种子保护，' + n + ' 支队伍全部随机落位，谁碰谁全看手气。';
+    }
+    return '按瑞士轮排名固定落位：1 对 ' + n + '、4 对 ' + (n - 3) + '…，靠前的种子分在不同半区。';
+  }
+
+  function koModeLabel(mode) {
+    if (mode === 'tier') return '分档抽签';
+    if (mode === 'random') return '完全随机';
+    return '按积分排位';
+  }
+
+  function tierPreview(seeded, n) {
+    var half = n / 2;
+    var fmt = function (arr) {
+      return arr.map(function (r) { return esc(r.name); }).join(' · ');
+    };
+    return '<div class="seed-pairs">' +
+      '<div class="seed-pair" style="align-items:flex-start"><span class="badge green">一档</span>' +
+      '<span style="flex:1;font-size:11.5px;line-height:1.7">' + fmt(seeded.slice(0, half)) + '</span></div>' +
+      '<div class="seed-pair" style="align-items:flex-start"><span class="badge">二档</span>' +
+      '<span style="flex:1;font-size:11.5px;line-height:1.7">' + fmt(seeded.slice(half)) + '</span></div></div>';
+  }
+
+  function koMatchHTML(m) {
+    var A = m.aId ? E.teamById(state, m.aId) : null;
+    var B = m.bId ? E.teamById(state, m.bId) : null;
+    var played = m.played;
+    var cls = played ? 'done' : (A && B ? 'live' : 'pending');
+    var aWin = played && m.winnerId === m.aId;
+    var bWin = played && m.winnerId === m.bId;
+    var pens = m.aPens != null ? '<div class="ko-foot">点球 ' + m.aPens + ' : ' + m.bPens + '</div>' : '';
+    return '<div class="ko-match ' + cls + '" data-act="ko-score" data-id="' + m.id + '">' +
+      '<div class="ko-side ' + (aWin ? 'win' : '') + ' ' + (A ? '' : 'tbd') + '">' +
+      '<span class="dot" style="background:' + esc(A ? A.color : '#33473c') + '"></span>' +
+      '<span class="nm">' + (A ? esc(A.name) : '待定') + '</span>' +
+      '<span class="sc">' + (played ? m.aScore : '') + '</span></div>' +
+      '<div class="ko-side ' + (bWin ? 'win' : '') + ' ' + (B ? '' : 'tbd') + '">' +
+      '<span class="dot" style="background:' + esc(B ? B.color : '#33473c') + '"></span>' +
+      '<span class="nm">' + (B ? esc(B.name) : '待定') + '</span>' +
+      '<span class="sc">' + (played ? m.bScore : '') + '</span></div>' + pens + '</div>';
+  }
+
+  /* ================= 数据 ================= */
+
+  function viewData() {
+    var html = '<div class="section" style="margin-top:2px"><div class="section-head"><h3>赛制</h3></div>' +
+      '<div class="list-card">' +
+      dataRow('⚙️', '联赛名称', state.meta.name + (state.meta.season ? ' · ' + state.meta.season : ''), 'settings') +
+      dataRow('🔁', '瑞士轮轮数', state.meta.swissRounds + ' 轮', 'settings') +
+      dataRow('🏆', '淘汰赛规模', '前 ' + E.effectiveAdvance(state) + ' 名晋级', 'settings') +
+      dataRow('📊', '积分规则', '胜 3 分 · 平 1 分 · 负 0 分', 'settings') +
+      '</div></div>';
+
+    html += '<div class="section"><div class="section-head"><h3>队伍与成绩</h3></div><div class="list-card">' +
+      dataRow('🖼️', '生成分享图', '积分榜 + 本轮比分 + 下一轮对阵', 'share-card') +
+      dataRow('📄', '导出队伍名单', 'CSV，可直接用 Excel 打开', 'export-teams') +
+      dataRow('📈', '导出积分榜', 'CSV', 'export-standings') +
+      dataRow('🗓️', '导出完整赛程', '瑞士轮 + 淘汰赛比分', 'export-schedule') +
+      '</div></div>';
+
+    html += '<div class="section"><div class="section-head"><h3>备份与恢复</h3></div><div class="list-card">' +
+      dataRow('💾', '导出全量备份', 'JSON，包含名单、抽签、全部比分', 'export-json') +
+      '<label class="list-row" style="cursor:pointer">' +
+      '<span class="ic">📥</span><div class="tx"><b>从备份恢复</b><span>选择 .json 文件覆盖当前数据</span></div>' +
+      '<span class="chev">›</span><input id="fileJson" type="file" accept=".json,application/json" hidden></label>' +
+      '</div></div>';
+
+    html += '<div class="section danger-zone"><div class="section-head"><h3>危险操作</h3></div><div class="list-card">' +
+      dataRow('↺', '重置赛程', '保留队伍，清空抽签与所有比分', 'reset-schedule') +
+      dataRow('🗑️', '清空全部数据', '删除队伍和全部赛程', 'clear-all') +
+      '</div></div>';
+
+    html += '<div class="section"><div class="section-head"><h3>说明</h3></div>' +
+      '<div class="card" style="padding:14px 15px"><p class="hint">' +
+      '· 数据保存在本机浏览器（localStorage），不联网、不上传。<br>' +
+      '· 换手机或清理浏览器前，先导出 JSON 备份。<br>' +
+      '· 瑞士轮：每轮按积分排序，相邻队伍配对，全程不重复对阵；单数队伍有一队轮空得 3 分。<br>' +
+      '· 淘汰赛：积分榜前 N 名按 1 对 N 交叉，单场决胜，平局踢点球。<br>' +
+      '· 建议用 Chrome / Edge 打开，并「添加到主屏幕」当 App 用。' +
+      '</p></div></div>';
+    return html;
+  }
+
+  function dataRow(icon, title, sub, act) {
+    return '<button class="list-row" data-act="' + act + '">' +
+      '<span class="ic">' + icon + '</span><div class="tx"><b>' + esc(title) + '</b><span>' + esc(sub) + '</span></div>' +
+      '<span class="chev">›</span></button>';
+  }
+
+  /* ================= 弹窗 ================= */
+
+  function openImport() {
+    if (state.swiss.rounds.length || state.ko.built) {
+      return toast('比赛已开始，导入前请先在「数据」里重置赛程', true);
+    }
+    ui.teamPreview = null;
+    modal(
+      '<div class="modal-head"><h2>导入参赛队伍</h2><button class="icon-btn" data-act="close-modal">\u2715</button></div>' +
+      '<p class="hint">把名单粘贴进来，一行一支队伍。支持「序号 队伍名称」两列、Markdown 表格、CSV；表头会自动跳过。</p>' +
+      '<textarea id="pasteBox" class="paste" placeholder="序号 队伍名称\n01 云海生烟\n02 无能的下游引物\n\u2026"></textarea>' +
+      '<div class="row gap">' +
+      '<label class="btn btn-sm" style="cursor:pointer">上传文件<input id="fileCsv" type="file" accept=".md,.markdown,.csv,.tsv,.txt" hidden></label>' +
+      '<button class="btn btn-sm" data-act="fill-sample">填入示例</button>' +
+      '<span class="spacer"></span>' +
+      '<button class="btn btn-sm" data-act="parse-teams">解析预览</button>' +
+      '</div>' +
+      '<div id="importPreview"></div>'
+    );
+    setTimeout(function () { var el = $('pasteBox'); if (el) el.focus(); }, 60);
+  }
+
+  function fillSampleText() {
+    return '序号 队伍名称\n' +
+      '01 云海生烟\n02 无能的下游引物\n03 我为球狂\n04 馍鬼\n05 PES猪腰子\n06 Enzo\n' +
+      '07 长泽雅美\n08 氪金\n09 一面侧颜\n10 队长\n11 六吱\n12 车神';
+  }
+
+  function doParseTeams() {
+    var box = $('pasteBox');
+    if (!box) return;
+    if (!box.value.trim()) return toast('先粘贴队伍名单', true);
+    var res = E.parseTeamList(box.value);
+    if (!res.names.length) return toast('没有解析到队伍', true);
+    ui.teamPreview = res;
+    renderImportPreview();
+  }
+
+  function renderImportPreview() {
+    if (!ui.teamPreview) return;
+    var wrap = $('importPreview');
+    if (!wrap) return;
+    var names = ui.teamPreview.names;
+    var list = names.slice(0, 12).map(function (n, i) {
+      return '<div class="slot"><span class="no">' + String(i + 1).padStart(2, '0') + '</span><span class="nm">' + esc(n) + '</span></div>';
+    }).join('');
+    wrap.innerHTML =
+      '<p class="tiny muted" style="margin-top:10px">识别到 <b style="color:#2ee66b">' + names.length + '</b> 支队伍' +
+      (ui.teamPreview.duplicates ? ' \u00b7 忽略 ' + ui.teamPreview.duplicates + ' 条重复' : '') + '：</p>' +
+      '<div class="slots" style="max-height:230px;overflow:auto">' + list +
+      (names.length > 12 ? '<div class="hint" style="padding:8px 2px">\u2026 还有 ' + (names.length - 12) + ' 支</div>' : '') +
+      '</div>' +
+      '<div class="field"><label>导入方式</label><div class="radio-row">' +
+      '<label class="radio-chip on"><input type="radio" name="imode" value="merge" checked>追加</label>' +
+      '<label class="radio-chip"><input type="radio" name="imode" value="replace">覆盖全部</label>' +
+      '</div></div>' +
+      '<div class="row gap"><span class="spacer"></span>' +
+      '<button class="btn" data-act="close-modal">取消</button>' +
+      '<button class="btn btn-primary" data-act="import-teams">导入 ' + names.length + ' 支队伍</button></div>';
+  }
+
+  function openTeamForm(id) {
+    var t = id ? E.teamById(state, id) : null;
+    if (id && !t) return;
+    modal(
+      '<div class="modal-head"><h2>' + (id ? '编辑队伍' : '添加队伍') + '</h2>' +
+      '<button class="icon-btn" data-act="close-modal">\u2715</button></div>' +
+      '<div class="field"><label>队伍名称 *</label><input id="tfName" value="' + esc(t ? t.name : '') + '" placeholder="例如：云海生烟"></div>' +
+      '<div class="row gap">' +
+      (t ? '<button class="btn btn-danger" data-act="team-del" data-id="' + t.id + '">删除</button>' : '') +
+      '<span class="spacer"></span>' +
+      '<button class="btn" data-act="close-modal">取消</button>' +
+      '<button class="btn btn-primary" data-act="team-save" data-id="' + (id || '') + '">保存</button></div>'
+    );
+  }
+
+  function openSettings() {
+    var m = state.meta;
+    modal(
+      '<div class="modal-head"><h2>赛制设置</h2><button class="icon-btn" data-act="close-modal">✕</button></div>' +
+      '<div class="field"><label>联赛名称</label><input id="setName" value="' + esc(m.name) + '"></div>' +
+      '<div class="field"><label>赛季 / 备注</label><input id="setSeason" value="' + esc(m.season) + '" placeholder="2026 秋季联赛"></div>' +
+      '<div class="field-row">' +
+      '<div class="field"><label>瑞士轮轮数</label><select id="setRounds">' +
+      [3, 4, 5, 6, 7].map(function (n) { return '<option value="' + n + '"' + (m.swissRounds === n ? ' selected' : '') + '>' + n + ' 轮</option>'; }).join('') +
+      '</select></div>' +
+      '<div class="field"><label>淘汰赛名额</label><select id="setAdvance">' +
+      [4, 8, 16].map(function (n) { return '<option value="' + n + '"' + (m.advance === n ? ' selected' : '') + '>' + n + ' 强</option>'; }).join('') +
+      '</select></div></div>' +
+      '<p class="hint" style="margin-top:10px">积分规则固定为胜 3 分、平 1 分、负 0 分。已有比赛时修改轮数或名额会重置赛程（名单保留）。</p>' +
+      '<div class="row gap"><span class="spacer"></span>' +
+      '<button class="btn" data-act="close-modal">取消</button>' +
+      '<button class="btn btn-primary" data-act="settings-save">保存</button></div>'
+    );
+  }
+
+  function openKoScore(id) {
+    var m = null, roundName = '';
+    state.ko.rounds.forEach(function (r) {
+      r.matches.forEach(function (x) { if (x.id === id) { m = x; roundName = r.name; } });
+    });
+    if (!m) return;
+    if (!m.aId || !m.bId) return toast('对阵还没产生，先打完上一轮', true);
+    var A = E.teamById(state, m.aId), B = E.teamById(state, m.bId);
+    modal(
+      '<div class="modal-head"><h2>' + esc(roundName) + '</h2><button class="icon-btn" data-act="close-modal">✕</button></div>' +
+      '<div class="match" style="border-color:rgba(46,230,107,.22)">' +
+      '<div class="side"><span class="dot" style="background:' + esc(A.color) + '"></span>' +
+      '<span class="nm">' + esc(A.name) + '</span>' +
+      '<input class="score" id="koA" type="number" inputmode="numeric" min="0" max="99" value="' + (m.aScore == null ? '' : m.aScore) + '"></div>' +
+      '<div class="side"><span class="dot" style="background:' + esc(B.color) + '"></span>' +
+      '<span class="nm">' + esc(B.name) + '</span>' +
+      '<input class="score" id="koB" type="number" inputmode="numeric" min="0" max="99" value="' + (m.bScore == null ? '' : m.bScore) + '"></div>' +
+      '</div>' +
+      '<div class="pens-row"><label>点球比分（常规时间平局时必填）</label>' +
+      '<input id="koPA" type="number" inputmode="numeric" min="0" value="' + (m.aPens == null ? '' : m.aPens) + '">' +
+      '<span class="vs-colon">:</span>' +
+      '<input id="koPB" type="number" inputmode="numeric" min="0" value="' + (m.bPens == null ? '' : m.bPens) + '"></div>' +
+      '<div class="row gap" style="margin-top:14px">' +
+      (m.played ? '<button class="btn btn-danger btn-sm" data-act="ko-clear" data-id="' + m.id + '">清除比分</button>' : '') +
+      '<span class="spacer"></span>' +
+      '<button class="btn" data-act="close-modal">取消</button>' +
+      '<button class="btn btn-primary" data-act="ko-save" data-id="' + m.id + '">保存比分</button></div>'
+    );
+  }
+
+  function openBoard() {
+    var ar = activeRound();
+    if (!ar) return toast('还没有比赛', true);
+    ui.board = true;
+    var rows = '';
+    var count = 0;
+    ar.round.matches.forEach(function (m) {
+      var homeId = ar.kind === 'ko' ? m.aId : m.homeId;
+      var awayId = ar.kind === 'ko' ? m.bId : m.awayId;
+      if (!homeId) return;
+      count++;
+      var hn = E.nameOf(state, homeId);
+      var an = awayId ? E.nameOf(state, awayId) : '轮空';
+      var hs = ar.kind === 'ko' ? m.aScore : m.homeScore;
+      var as = ar.kind === 'ko' ? m.bScore : m.awayScore;
+      var winH = m.played && hs > as, winA = m.played && as > hs;
+      rows += '<div class="board-match">' +
+        '<div class="bt ' + (winH ? 'win' : '') + '"><span class="nm">' + esc(hn) + '</span>' +
+        '<span class="sc ' + (m.played ? '' : 'pending') + '">' + (m.played ? hs : (m.bye ? '轮空' : '–')) + '</span></div>' +
+        '<div class="bt ' + (winA ? 'win' : '') + '"><span class="nm">' + esc(an) + '</span>' +
+        '<span class="sc ' + (m.played ? '' : 'pending') + '">' + (m.played ? as : (m.bye ? '' : '–')) + '</span></div>' +
+        '</div>';
+    });
+    $('modal').innerHTML = '<div class="board">' +
+      '<div class="board-head"><div><h2>' + esc(state.meta.name) + '</h2>' +
+      '<div class="sub">' + esc(ar.label) + ' · ' + count + ' 场</div></div>' +
+      '<button class="btn btn-sm" data-act="board-close">关闭</button></div>' +
+      '<div class="board-list">' + rows + '</div>' +
+      '<div class="board-foot">比分直播板 · 数据来自本机记录</div></div>';
+  }
+
+  /* ================= 操作 ================= */
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function shareDate() {
+    var d = new Date();
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  function buildShareData() {
+    var meta = state.meta;
+    var cut = E.effectiveAdvance(state);
+    var rows = E.computeStandings(state).map(function (r) {
+      return { rank: r.rank, name: r.name, color: r.color, played: r.played, w: r.won, d: r.drawn, l: r.lost, gd: r.gd, points: r.points };
+    });
+    var d = {
+      league: meta.name,
+      season: meta.season,
+      headline: '',
+      meta: state.teams.length + ' 支队伍 · ' + meta.swissRounds + ' 轮瑞士轮 · 前 ' + cut + ' 进淘汰赛',
+      updated: shareDate(),
+      standings: rows,
+      cut: state.ko.built ? 0 : (rows.length > cut ? cut : 0),
+      results: null,
+      fixtures: null,
+      note: null,
+      champion: null,
+      fileTag: '战报'
+    };
+
+    if (state.ko.built) {
+      var ko = state.ko;
+      var playedRounds = ko.rounds.filter(function (r) {
+        return r.matches.some(function (m) { return m.played; });
+      });
+      var last = playedRounds[playedRounds.length - 1];
+      if (last) {
+        d.results = {
+          title: last.name + ' 比分',
+          matches: last.matches.filter(function (m) { return m.played; }).map(function (m) {
+            return {
+              home: E.nameOf(state, m.aId), away: E.nameOf(state, m.bId),
+              hs: m.aScore, as: m.bScore,
+              pens: m.aPens != null ? (m.aPens + ':' + m.bPens) : null
+            };
+          })
+        };
+      }
+      ko.rounds.forEach(function (r) {
+        if (d.fixtures) return;
+        var ms = r.matches.filter(function (m) { return m.aId && m.bId && !m.played; });
+        if (ms.length) {
+          d.fixtures = {
+            title: r.name + ' 对阵',
+            matches: ms.map(function (m) {
+              return { home: E.nameOf(state, m.aId), away: E.nameOf(state, m.bId) };
+            })
+          };
+        }
+      });
+      if (ko.champion) {
+        var ct = E.teamById(state, ko.champion);
+        var fin = ko.rounds[ko.rounds.length - 1].matches[0];
+        d.headline = '冠军诞生';
+        d.champion = {
+          name: ct ? ct.name : '冠军',
+          color: ct ? ct.color : '#f5c451',
+          line: '决赛 ' + fin.aScore + ' : ' + fin.bScore + (fin.aPens != null ? '（点球 ' + fin.aPens + ':' + fin.bPens + '）' : '')
+        };
+        d.meta = meta.name + ' · 冠军 ' + (ct ? ct.name : '') + (meta.season ? ' · ' + meta.season : '');
+        d.fileTag = '冠军';
+        d.fixtures = null;
+        d.note = null;
+      } else {
+        var cur = ko.rounds.filter(function (r) {
+          return r.matches.some(function (m) { return m.aId && m.bId && !m.played; });
+        })[0];
+        d.headline = '淘汰赛 · ' + (cur ? cur.name : ko.rounds[ko.rounds.length - 1].name);
+        d.fileTag = '淘汰赛';
+        if (!d.fixtures) d.note = '本轮对阵待产生';
+      }
+    } else if (state.swiss.rounds.length) {
+      var rounds = state.swiss.rounds;
+      var played = rounds.filter(function (r) {
+        return r.matches.some(function (m) { return m.played; });
+      });
+      var lastR = played[played.length - 1] || null;
+      if (lastR) {
+        d.results = {
+          title: '第 ' + lastR.no + ' 轮 比分',
+          matches: lastR.matches.filter(function (m) { return m.played; }).map(function (m) {
+            return { home: E.nameOf(state, m.homeId), away: E.nameOf(state, m.awayId), hs: m.homeScore, as: m.awayScore };
+          })
+        };
+        d.headline = '第 ' + lastR.no + ' 轮 战报';
+        d.fileTag = '第' + lastR.no + '轮';
+      } else {
+        d.headline = '第 1 轮 对阵';
+        d.fileTag = '第1轮';
+      }
+
+      var remaining = lastR && !lastR.matches.every(function (m) { return m.played; });
+      if (remaining) {
+        var left = lastR.matches.filter(function (m) { return !m.played && !m.bye; });
+        if (left.length) {
+          d.fixtures = {
+            title: '第 ' + lastR.no + ' 轮 剩余对阵',
+            matches: left.map(function (m) {
+              return { home: E.nameOf(state, m.homeId), away: E.nameOf(state, m.awayId) };
+            })
+          };
+        }
+      } else {
+        var nextRound = rounds.filter(function (r) { return lastR ? r.no === lastR.no + 1 : r.no === 1; })[0];
+        if (nextRound) {
+          var ms = nextRound.matches.filter(function (m) { return !m.played && !m.bye; });
+          if (ms.length) {
+            d.fixtures = {
+              title: '第 ' + nextRound.no + ' 轮 对阵',
+              matches: ms.map(function (m) {
+                return { home: E.nameOf(state, m.homeId), away: E.nameOf(state, m.awayId) };
+              })
+            };
+          }
+        }
+        if (!d.fixtures) {
+          if (!lastR) d.note = '第 1 轮对阵待生成';
+          else if (rounds.length < meta.swissRounds) d.note = '第 ' + (rounds.length + 1) + ' 轮对阵待抽签';
+          else d.note = '瑞士轮结束 · 淘汰赛对阵待抽签';
+        }
+      }
+    } else if (state.teams.length) {
+      d.headline = '赛前 · 参赛队伍';
+      d.meta = state.teams.length + ' 支队伍 · 抽签后开赛';
+      d.note = '抽签完成后再生成首轮对阵';
+      d.fileTag = '赛前';
+    } else {
+      d.headline = '赛前 · 等待报名';
+      d.note = '还没有队伍';
+    }
+    return d;
+  }
+
+  function openShareCard() {
+    if (!window.ShareCard) return toast('分享图组件未加载', true);
+    var data;
+    try { data = buildShareData(); } catch (err) { return toast('生成失败：' + err.message, true); }
+    var canvas = document.createElement('canvas');
+    try { window.ShareCard.draw(canvas, data); } catch (err) { return toast('生成图片失败：' + err.message, true); }
+    if (!canvas.toBlob) return toast('当前浏览器不支持生成图片', true);
+    canvas.toBlob(function (blob) {
+      if (!blob) return toast('生成图片失败', true);
+      var d = new Date();
+      var name = safeName() + '-' + data.fileTag + '-' + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '.png';
+      var file = null;
+      try { file = new File([blob], name, { type: 'image/png' }); } catch (err) { file = null; }
+      var url = URL.createObjectURL(blob);
+      ui.share = { file: file, url: url, name: name, data: data };
+      modal(
+        '<div class="modal-head"><h2>分享图</h2><button class="icon-btn" data-act="close-modal">✕</button></div>' +
+        '<div class="share-preview"><img src="' + url + '" alt="战报图"></div>' +
+        '<p class="hint" style="margin-top:10px">发 QQ 群：点「分享」选 QQ；不行就「保存图片」后从相册发送，长按图片也能保存。</p>' +
+        '<div class="row gap">' +
+        '<button class="btn" data-act="share-download">保存图片</button>' +
+        '<button class="btn" data-act="share-copy">复制文字</button>' +
+        '<button class="btn btn-primary" style="flex:1" data-act="share-now">分享</button>' +
+        '</div>'
+      );
+    }, 'image/png');
+  }
+
+  function shareTextOf(d) {
+    var lines = [];
+    lines.push('【' + d.league + ' · ' + d.headline + '】');
+    if (d.champion) lines.push('冠军：' + d.champion.name + '（' + d.champion.line + '）');
+    if (d.standings && d.standings.length) {
+      lines.push('');
+      lines.push('积分榜');
+      d.standings.forEach(function (r) {
+        lines.push(r.rank + '. ' + r.name + '  ' + r.points + '分  ' + r.w + '-' + r.d + '-' + r.l + '  净' + (r.gd > 0 ? '+' : '') + r.gd);
+      });
+    }
+    if (d.results) {
+      lines.push('');
+      lines.push(d.results.title);
+      d.results.matches.forEach(function (m) {
+        lines.push(m.home + ' ' + m.hs + ':' + m.as + ' ' + m.away + (m.pens ? '（点球 ' + m.pens + '）' : ''));
+      });
+    }
+    if (d.fixtures) {
+      lines.push('');
+      lines.push(d.fixtures.title);
+      d.fixtures.matches.forEach(function (m) { lines.push(m.home + ' vs ' + m.away); });
+    }
+    if (d.note) { lines.push(''); lines.push(d.note); }
+    lines.push('');
+    lines.push('更新于 ' + d.updated);
+    return lines.join('\n');
+  }
+
+  function copyShareText() {
+    if (!ui.share) return;
+    var text = shareTextOf(ui.share.data);
+    var done = function () { toast('文字版已复制，去 QQ 粘贴'); };
+    var fallback = function () {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+      ta.remove();
+      if (ok) done(); else toast('复制失败，请手动截图或保存图片', true);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function downloadShare() {
+    if (!ui.share) return;
+    var a = document.createElement('a');
+    a.href = ui.share.url;
+    a.download = ui.share.name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { a.remove(); }, 800);
+    toast('图片已保存到下载目录');
+  }
+
+  function shareNow() {
+    if (!ui.share) return;
+    var f = ui.share.file;
+    var can = false;
+    try { can = !!(f && navigator.share && navigator.canShare && navigator.canShare({ files: [f] })); } catch (err) { can = false; }
+    if (can) {
+      navigator.share({ files: [f], title: state.meta.name, text: ui.share.data.headline }).catch(function () {});
+      return;
+    }
+    downloadShare();
+    toast('当前环境不能直接分享，已保存图片，去 QQ 群发送即可', false);
+  }
+
+  function runDraw() {
+    if (!state.teams.length) return toast('还没有队伍', true);
+    if (state.swiss.rounds.length || state.ko.built) return toast('比赛已开始，需先重置赛程才能重新抽签', true);
+    var names = state.teams.map(function (t) { return t.name; });
+    modal('<div class="draw-anim"><span class="big-ball">🎲</span><div class="rolling" id="rolling">抽取中…</div>' +
+      '<p>正在为 ' + names.length + ' 支队伍随机排位</p></div>');
+    var tick = 0;
+    var timer = setInterval(function () {
+      var el = $('rolling');
+      if (!el) return;
+      el.textContent = names[Math.floor(Math.random() * names.length)];
+      tick++;
+    }, 90);
+    setTimeout(function () {
+      clearInterval(timer);
+      E.drawTeams(state);
+      save();
+      closeModal();
+      ui.tab = 'draw';
+      render();
+      toast('抽签完成，共 ' + names.length + ' 支队伍');
+    }, 1350);
+  }
+
+  function runSwissDraw() {
+    var rounds = state.swiss.rounds, max = state.meta.swissRounds;
+    if (rounds.length >= max) return toast('已经完成全部瑞士轮', true);
+    if (rounds.length && rounds[rounds.length - 1].matches.some(function (m) { return !m.played; })) {
+      return toast('上一轮还有比赛未录入比分', true);
+    }
+    var names = state.teams.map(function (t) { return t.name; });
+    modal('<div class="draw-anim"><span class="big-ball">🎲</span>' +
+      '<div class="rolling" id="rolling">抽签中…</div>' +
+      '<p>第 ' + (rounds.length + 1) + ' 轮 · 同积分队伍内抽取对手</p></div>');
+    var timer = setInterval(function () {
+      var el = $('rolling');
+      if (!el) return;
+      el.textContent = names[Math.floor(Math.random() * names.length)];
+    }, 90);
+    setTimeout(function () {
+      clearInterval(timer);
+      var res = E.generateSwissRound(state, { lottery: true });
+      closeModal();
+      if (!res.ok) return toast(res.error, true);
+      ui.swissRound = res.round.no;
+      save();
+      render();
+      toast('第 ' + res.round.no + ' 轮对阵已生成' + (res.bye ? ' · 有 1 队轮空' : ''));
+    }, 1200);
+  }
+
+  function runKoDraw(mode) {
+    var draw = E.drawKnockout(state, mode);
+    if (!draw.ok) return toast(draw.error, true);
+    var names = E.koSeeds(state).map(function (r) { return r.name; });
+    modal('<div class="draw-anim"><span class="big-ball">🎲</span>' +
+      '<div class="rolling" id="rolling">抽签中…</div>' +
+      '<p>' + esc(koModeLabel(mode)) + ' · 正在为 ' + names.length + ' 支晋级队伍落位</p></div>');
+    var timer = setInterval(function () {
+      var el = $('rolling');
+      if (!el) return;
+      el.textContent = names[Math.floor(Math.random() * names.length)];
+    }, 90);
+    setTimeout(function () {
+      clearInterval(timer);
+      var res = E.buildKnockout(state, { order: draw.order, mode: mode });
+      closeModal();
+      if (!res.ok) return toast(res.error, true);
+      save();
+      ui.tab = 'ko';
+      render();
+      toast('淘汰赛对阵已生成');
+    }, 1300);
+  }
+
+  function exportText(filename, text, mime) {
+    try {
+      var blob = new Blob(['\ufeff' + text], { type: mime || 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1200);
+      toast('已导出 ' + filename);
+    } catch (err) {
+      toast('导出失败：' + err.message, true);
+    }
+  }
+
+  function safeName() {
+    return (state.meta.name || '联赛').replace(/[\\/:*?"<>|]/g, '').slice(0, 20);
+  }
+
+  function loadDemo() {
+    state = E.createState({ name: '况友杯', season: '2026 秋季' });
+    ['蓝鲸FC', '雄鹰竞技', '铁狼', '赤焰', '北极星', '海港联', '闪电', '山城',
+      '白鹭', '黑豹', '金狮', '绿洲', '飞鱼', '巨石', '猎鹰', '星火'].forEach(function (name) {
+      E.addTeam(state, name);
+    });
+    ui.tab = 'overview';
+    ui.swissRound = null;
+    save();
+    render();
+    toast('已载入 16 支示例队伍');
+  }
+
+  /* ================= 事件 ================= */
+
+  var handlers = {
+    'tab': function (el) {
+      ui.tab = el.getAttribute('data-tab');
+      if (ui.tab === 'swiss' && !ui.swissRound) {
+        var rs = state.swiss.rounds;
+        if (rs.length) ui.swissRound = rs[rs.length - 1].no;
+      }
+      closeModal();
+      render();
+      window.scrollTo(0, 0);
+    },
+    'go-draw': function () { ui.tab = 'draw'; render(); window.scrollTo(0, 0); },
+    'open-import': function () { openImport(); },
+    'fill-sample': function () { $('pasteBox').value = fillSampleText(); },
+    'parse-teams': function () { doParseTeams(); },
+    'import-teams': function () {
+      if (!ui.teamPreview) return;
+      var checked = document.querySelector('input[name="imode"]:checked');
+      var mode = checked ? checked.value : 'merge';
+      var names = ui.teamPreview.names.slice();
+      var doIt = function () {
+        var res = E.importTeams(state, names, { mode: mode });
+        save();
+        closeModal();
+        ui.tab = 'teams';
+        render();
+        toast('已导入 ' + res.added + ' 支队伍' + (res.skipped ? ' · 跳过 ' + res.skipped + ' 支已有' : ''));
+      };
+      if (mode === 'replace' && state.teams.length) {
+        confirmBox('覆盖现有队伍', '当前队伍和已生成的赛程都会被清空，确定覆盖？', '覆盖').then(function (ok) {
+          if (ok) doIt();
+        });
+      } else {
+        doIt();
+      }
+    },
+    'add-team': function () {
+      if (state.draw.done) return toast('已抽签，新增队伍请先在「数据」里重置赛程', true);
+      openTeamForm(null);
+    },
+    'team-edit': function (el) { openTeamForm(el.getAttribute('data-id')); },
+    'team-save': function (el) {
+      var id = el.getAttribute('data-id');
+      var name = $('tfName').value.trim();
+      if (!name) return toast('请填写队伍名称', true);
+      var res = id ? E.updateTeam(state, id, { name: name }) : (E.addTeam(state, name) ? { ok: true } : { ok: false, error: '队伍已存在' });
+      if (!res.ok) return toast(res.error, true);
+      save(); closeModal(); render(); toast(id ? '已保存' : '已添加队伍');
+    },
+    'team-del': function (el) {
+      var id = el.getAttribute('data-id');
+      var t = E.teamById(state, id);
+      if (!t) return;
+      var warn = state.swiss.rounds.length || state.ko.built ? '比赛已经开始，删除队伍会重置整个赛程（其他队伍保留）。' : '删除后不可恢复。';
+      confirmBox('删除 ' + t.name, warn + ' 确定删除？', '删除').then(function (ok) {
+        if (!ok) return;
+        E.removeTeam(state, id);
+        save(); render(); toast('已删除队伍');
+      });
+    },
+    'do-draw': function () { runDraw(); },
+    'redraw': function () {
+      if (state.swiss.rounds.length) return toast('比赛已开始，不能重新抽签', true);
+      confirmBox('重新抽签', '会重新生成全部签位，确定继续？', '重新抽签').then(function (ok) { if (ok) runDraw(); });
+    },
+    'swiss-round': function (el) {
+      ui.swissRound = parseInt(el.getAttribute('data-no'), 10);
+      render();
+    },
+    'share-card': function () { openShareCard(); },
+    'share-download': function () { downloadShare(); },
+    'share-copy': function () { copyShareText(); },
+    'share-now': function () { shareNow(); },
+    'swiss-mode': function (el) {
+      ui.swissMode = el.getAttribute('data-mode');
+      render();
+    },
+    'gen-round': function () {
+      if (!state.draw.done) { ui.tab = 'draw'; render(); return toast('先完成抽签', true); }
+      if (ui.swissMode === 'lottery' && state.swiss.rounds.length) return runSwissDraw();
+      var res = E.generateSwissRound(state, { lottery: ui.swissMode === 'lottery' });
+      if (!res.ok) return toast(res.error, true);
+      ui.swissRound = res.round.no;
+      ui.tab = 'swiss';
+      save(); render();
+      toast('第 ' + res.round.no + ' 轮对阵已生成' + (res.bye ? ' · 有 1 队轮空' : ''));
+    },
+    'swiss-save': function (el) {
+      var id = el.getAttribute('data-id');
+      var box = el.closest('.match');
+      var inputs = box.querySelectorAll('.score');
+      if (!inputs.length) return;
+      var hv = inputs[0].value, av = inputs[1].value;
+      if (hv === '' || av === '') return toast('请填写双方比分', true);
+      var res = E.setSwissScore(state, id, hv, av);
+      if (!res.ok) return toast(res.error, true);
+      save(); render(); toast('比分已保存');
+    },
+    'build-ko': function () {
+      var mode = ui.koMode || 'seed';
+      if (mode !== 'seed') return runKoDraw(mode);
+      var res = E.buildKnockout(state, { mode: 'seed' });
+      if (!res.ok) return toast(res.error, true);
+      save(); ui.tab = 'ko'; render(); toast('淘汰赛对阵已生成');
+    },
+    'redraw-ko': function () {
+      confirmBox('重新抽签', '会清空当前淘汰赛对阵和比分，重新抽一次。确定继续？', '重新抽签').then(function (ok) {
+        if (ok) runKoDraw((state.ko && state.ko.mode) || 'seed');
+      });
+    },
+    'ko-score': function (el) { openKoScore(el.getAttribute('data-id')); },
+    'ko-save': function (el) {
+      var id = el.getAttribute('data-id');
+      var res = E.setKoScore(state, id, $('koA').value, $('koB').value, $('koPA').value, $('koPB').value);
+      if (!res.ok) return toast(res.error, true);
+      save(); closeModal(); render(); toast('比分已保存');
+    },
+    'ko-clear': function (el) {
+      var id = el.getAttribute('data-id');
+      E.clearKoScore(state, id);
+      save(); closeModal(); render(); toast('已清除比分');
+    },
+    'board': function () { openBoard(); },
+    'board-close': function () { closeModal(); render(); },
+    'settings': function () { openSettings(); },
+    'settings-save': function () {
+      var name = $('setName').value.trim() || '足球联赛';
+      var season = $('setSeason').value.trim();
+      var rounds = parseInt($('setRounds').value, 10);
+      var adv = parseInt($('setAdvance').value, 10);
+      var started = state.swiss.rounds.length > 0 || state.ko.built;
+      var changed = rounds !== state.meta.swissRounds || adv !== state.meta.advance;
+      var apply = function () {
+        state.meta.name = name;
+        state.meta.season = season;
+        state.meta.swissRounds = rounds;
+        state.meta.advance = adv;
+        if (changed && started) E.resetCompetition(state, { keepDraw: true });
+        save(); closeModal(); render(); toast('设置已保存');
+      };
+      if (changed && started) {
+        confirmBox('修改赛制', '轮数或淘汰赛名额已改变，已生成的赛程会被重置（名单保留）。确定继续？', '重置并保存').then(function (ok) { if (ok) apply(); });
+      } else {
+        apply();
+      }
+    },
+    'export-teams': function () { exportText(safeName() + '-队伍名单.csv', E.teamsCSV(state), 'text/csv;charset=utf-8'); },
+    'export-standings': function () { exportText(safeName() + '-积分榜.csv', E.standingsCSV(state), 'text/csv;charset=utf-8'); },
+    'export-schedule': function () { exportText(safeName() + '-赛程.csv', E.scheduleCSV(state), 'text/csv;charset=utf-8'); },
+    'export-json': function () { exportText(safeName() + '-备份.json', JSON.stringify(state, null, 2), 'application/json'); },
+    'reset-schedule': function () {
+      confirmBox('重置赛程', '会清空抽签、瑞士轮和淘汰赛的全部对阵与比分，队伍名单保留。', '重置').then(function (ok) {
+        if (!ok) return;
+        E.resetCompetition(state, { keepDraw: false });
+        ui.swissRound = null;
+        ui.tab = 'overview';
+        save(); render(); toast('赛程已重置');
+      });
+    },
+    'clear-all': function () {
+      confirmBox('清空全部数据', '队伍、比分和赛程都会被删除，且无法恢复。建议先导出备份。', '全部清空').then(function (ok) {
+        if (!ok) return;
+        state = E.createState();
+        ui.swissRound = null;
+        ui.tab = 'overview';
+        save(); render(); toast('已清空');
+      });
+    },
+    'load-demo': function () { loadDemo(); },
+    'close-modal': function () { closeModal(); },
+    'confirm-yes': function () {
+      var r = confirmResolve; confirmResolve = null;
+      closeModal();
+      if (r) r(true);
+    },
+    'confirm-no': function () {
+      var r = confirmResolve; confirmResolve = null;
+      closeModal();
+      if (r) r(false);
+    }
+  };
+
+  document.addEventListener('click', function (ev) {
+    var mask = ev.target.closest && ev.target.closest('[data-mask]');
+    if (mask && ev.target === mask) {
+      var r = confirmResolve; confirmResolve = null;
+      closeModal();
+      if (r) r(false);
+      return;
+    }
+    var el = ev.target.closest && ev.target.closest('[data-act]');
+    if (!el) return;
+    var act = el.getAttribute('data-act');
+    if (!handlers[act]) return;
+    if (el.tagName === 'A' || el.getAttribute('href') === '#') ev.preventDefault();
+    handlers[act](el, ev);
+  });
+
+  document.addEventListener('input', function (ev) {
+    if (ev.target.id === 'teamSearch') filterTeams(ev.target.value);
+  });
+
+  document.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (t.id === 'fileCsv' && t.files && t.files[0]) {
+      var f = t.files[0];
+      var reader = new FileReader();
+      reader.onload = function () {
+        var box = $('pasteBox');
+        if (box) { box.value = String(reader.result || ''); doParse(); }
+      };
+      reader.readAsText(f);
+      t.value = '';
+    }
+    if (t.id === 'fileJson' && t.files && t.files[0]) {
+      var file = t.files[0];
+      var fr = new FileReader();
+      fr.onload = function () {
+        try {
+          var next = E.sanitizeState(JSON.parse(String(fr.result || '')));
+          confirmBox('从备份恢复', '当前数据会被覆盖，确定继续？', '覆盖').then(function (ok) {
+            if (!ok) return;
+            state = next;
+            ui.swissRound = null;
+            ui.tab = 'overview';
+            save(); render(); toast('备份已恢复');
+          });
+        } catch (err) {
+          toast('备份文件无法解析：' + err.message, true);
+        }
+      };
+      fr.readAsText(file);
+      t.value = '';
+    }
+    if (t.name === 'imode') {
+      Array.prototype.forEach.call(document.querySelectorAll('.radio-chip'), function (chip) {
+        var input = chip.querySelector('input');
+        chip.classList.toggle('on', !!(input && input.checked));
+      });
+    }
+    if (t.name === 'komode') {
+      ui.koMode = t.value;
+      render();
+    }
+    if (t.id === 'pfTeam') {
+      var wrap = $('newTeamWrap');
+      if (wrap) wrap.style.display = t.value === '__new' ? 'block' : 'none';
+    }
+  });
+
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') {
+      if (ui.board) { closeModal(); render(); }
+      else if ($('modal').innerHTML) closeModal();
+      return;
+    }
+    if (ev.key === 'Enter' && ev.target.classList && ev.target.classList.contains('score')) {
+      var box = ev.target.closest('.match');
+      var btn = box && box.querySelector('[data-act="swiss-save"]');
+      if (btn) { ev.preventDefault(); btn.click(); }
+    }
+  });
+
+  /* ================= 启动 ================= */
+
+  function render() {
+    $('leagueName').textContent = state.meta.name;
+    $('leagueSub').textContent = subtitle();
+    $('stagebar').innerHTML = stagebarHTML();
+    $('tabs').innerHTML = TABS.map(function (t) {
+      return '<button class="tab' + (ui.tab === t[0] ? ' active' : '') + '" data-act="tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
+    }).join('');
+    var views = {
+      overview: viewOverview,
+      teams: viewTeams,
+      draw: viewDraw,
+      swiss: viewSwiss,
+      ko: viewKo,
+      data: viewData
+    };
+    document.title = state.meta.name + ' · 赛程管理';
+    var body = (views[ui.tab] || viewOverview)();
+    if (!storageOK) {
+      body = '<div class="warn-banner">当前浏览器不允许本地存储，刷新后数据会丢失。请用 Chrome 打开，或到「数据」里导出备份。</div>' + body;
+    }
+    $('view').innerHTML = body;
+    if (ui.tab === 'teams') {
+      var s = $('teamSearch');
+      if (s && s.value) filterTeams(s.value);
+    }
+  }
+
+  var TABS = [
+    ['overview', '总览'],
+    ['teams', '队伍'],
+    ['draw', '抽签'],
+    ['swiss', '瑞士轮'],
+    ['ko', '淘汰赛'],
+    ['data', '数据']
+  ];
+
+  window.__leagueApp = { render: render, state: function () { return state; }, shareData: buildShareData };
+  render();
+})();
+
+
+</script>
+</body>
+</html>
